@@ -339,6 +339,15 @@ void AuthManager::logout(const std::string& token) {
     sessions_.erase(token);
 }
 
+bool AuthManager::verifyCurrent(const std::string& password) const {
+    std::string hash;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        hash = hash_;
+    }
+    return !hash.empty() && verifyPassword(password, hash);
+}
+
 size_t AuthManager::sessionCount() const {
     std::lock_guard<std::mutex> lock(mutex_);
     return sessions_.size();

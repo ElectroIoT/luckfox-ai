@@ -45,6 +45,8 @@ public:
     bool validate(const std::string& token, int64_t nowMs);  // also refreshes the idle timer
     void logout(const std::string& token);
     size_t sessionCount() const;
+    // True if `password` is the current password (for "change password"; no session, no rate limit).
+    bool verifyCurrent(const std::string& password) const;
 
 private:
     struct Session { int64_t createdMs, lastMs; };

@@ -23,3 +23,4 @@ build_run test_auth   "$ROOT/tests/test_auth.cc" "${SYS[@]}" "$ROOT/src/webserve
 build_run test_mqtt   "$ROOT/tests/test_mqtt.cc" "${SYS[@]}" "$ROOT/src/mqtt/mqtt_client.cc" "$ROOT/src/mqtt/ha_discovery.cc"
 build_run test_gpio   "$ROOT/tests/test_gpio.cc" "${SYS[@]}" "$ROOT/src/gpio/gpio.cc"
 build_run test_ai     "$ROOT/tests/test_ai.cc" "$ROOT/src/ai/preprocess.cc" "$ROOT/src/ai/motion.cc"
+build_run test_api    "$ROOT/tests/test_api.cc" "${SYS[@]}" "$ROOT/src/webserver/api.cc" "$ROOT/src/webserver/auth.cc" "$ROOT/src/webserver/http_server.cc" "$ROOT/src/events/event_engine.cc" "$ROOT/src/events/event_store.cc"
