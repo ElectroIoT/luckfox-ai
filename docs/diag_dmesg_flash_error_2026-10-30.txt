@@ -1,0 +1,180 @@
+[  550.183504] dfa0:                   00000000 aecf6864 005223fc aecf6708 aecf67b8 aecf6708
+[  550.183515] dfc0: 00000000 aecf6864 005223a4 000000c3 00000002 005209dc 00000001 005223fc
+[  550.183524] dfe0: 00520a60 aecf6708 00494008 a6ec544c
+[  550.183547] UBIFS error (ubi0:0 pid 1561): ubifs_iget: failed to read inode 2416, error -5
+[  550.183572] UBIFS error (ubi0:0 pid 1561): ubifs_lookup: dead directory entry 'wc', error -5
+[  552.242604] rockchip-sfc ffac0000.spi: DMA wait for transfer finish timeout
+[  552.242638] rockchip-sfc ffac0000.spi: xfer data failed ret -110 dir 1
+[  552.242673] ubi0 warning: ubi_io_read: error -5 while reading 188 bytes from PEB 393:64960, read only 0 bytes, retry
+[  552.342803] rockchip-sfc ffac0000.spi: wait sfc idle timeout
+[  552.342851] ubi0 warning: ubi_io_read: error -5 while reading 188 bytes from PEB 393:64960, read only 0 bytes, retry
+[  554.402610] rockchip-sfc ffac0000.spi: DMA wait for transfer finish timeout
+[  554.402640] rockchip-sfc ffac0000.spi: xfer data failed ret -110 dir 1
+[  554.402673] ubi0 warning: ubi_io_read: error -5 while reading 188 bytes from PEB 393:64960, read only 0 bytes, retry
+[  554.502792] rockchip-sfc ffac0000.spi: wait sfc idle timeout
+[  554.502836] ubi0 error: ubi_io_read: error -5 while reading 188 bytes from PEB 393:64960, read 0 bytes
+[  554.502853] CPU: 0 PID: 1610 Comm: ls Tainted: G           O      5.10.160 #22
+[  554.502860] Hardware name: Generic DT based system
+[  554.502885] [<b000f56d>] (unwind_backtrace) from [<b000e03f>] (show_stack+0xb/0xc)
+[  554.502903] [<b000e03f>] (show_stack) from [<b025c959>] (ubi_io_read+0x159/0x1e0)
+[  554.502921] [<b025c959>] (ubi_io_read) from [<b025b7ab>] (ubi_eba_read_leb+0x173/0x1f4)
+[  554.502936] [<b025b7ab>] (ubi_eba_read_leb) from [<b025aa9b>] (ubi_leb_read+0x43/0x74)
+[  554.502955] [<b025aa9b>] (ubi_leb_read) from [<b012bccf>] (ubifs_leb_read+0x1b/0x48)
+[  554.502971] [<b012bccf>] (ubifs_leb_read) from [<b012cbab>] (ubifs_read_node+0x8f/0x158)
+[  554.502985] [<b012cbab>] (ubifs_read_node) from [<b013bfa9>] (ubifs_load_znode+0x65/0x2b0)
+[  554.503002] [<b013bfa9>] (ubifs_load_znode) from [<b012e551>] (ubifs_lookup_level0+0x8f/0xf2)
+[  554.503016] [<b012e551>] (ubifs_lookup_level0) from [<b012e5e9>] (ubifs_tnc_locate.part.4+0x35/0x11c)
+[  554.503032] [<b012e5e9>] (ubifs_tnc_locate.part.4) from [<b0129c09>] (ubifs_iget+0x55/0x348)
+[  554.503046] [<b0129c09>] (ubifs_iget) from [<b01277cd>] (ubifs_lookup+0x11d/0x1a4)
+[  554.503063] [<b01277cd>] (ubifs_lookup) from [<b007dc1d>] (__lookup_slow+0x69/0x84)
+[  554.503079] [<b007dc1d>] (__lookup_slow) from [<b007f299>] (walk_component+0x5d/0x8e)
+[  554.503094] [<b007f299>] (walk_component) from [<b007f57b>] (path_lookupat+0x51/0xaa)
+[  554.503109] [<b007f57b>] (path_lookupat) from [<b007fb2f>] (filename_lookup.part.21+0x35/0x6c)
+[  554.503127] [<b007fb2f>] (filename_lookup.part.21) from [<b007a8dd>] (vfs_statx+0x41/0xa0)
+[  554.503141] [<b007a8dd>] (vfs_statx) from [<b007acf7>] (vfs_fstatat+0x15/0x18)
+[  554.503156] [<b007acf7>] (vfs_fstatat) from [<b007ad93>] (__do_sys_lstat64+0x17/0x24)
+[  554.503171] [<b007ad93>] (__do_sys_lstat64) from [<b0008201>] (ret_fast_syscall+0x1/0x58)
+[  554.503180] Exception stack(0xb1e9dfa8 to 0xb1e9dff0)
+[  554.503193] dfa0:                   005430f8 00000000 005430e8 aea3ab60 aea3abd8 aea3ab60
+[  554.503206] dfc0: 005430f8 00000000 005430e8 000000c4 005409dc 00000000 005430e8 005415e8
+[  554.503215] dfe0: 00540d40 aea3ab60 004da354 a6ede04c
+[  554.503239] UBIFS error (ubi0:0 pid 1610): ubifs_leb_read: reading 188 bytes from LEB 391:60864 failed, error -5
+[  554.503248] CPU: 0 PID: 1610 Comm: ls Tainted: G           O      5.10.160 #22
+[  554.503255] Hardware name: Generic DT based system
+[  554.503269] [<b000f56d>] (unwind_backtrace) from [<b000e03f>] (show_stack+0xb/0xc)
+[  554.503284] [<b000e03f>] (show_stack) from [<b012bcf1>] (ubifs_leb_read+0x3d/0x48)
+[  554.503297] [<b012bcf1>] (ubifs_leb_read) from [<b012cbab>] (ubifs_read_node+0x8f/0x158)
+[  554.503310] [<b012cbab>] (ubifs_read_node) from [<b013bfa9>] (ubifs_load_znode+0x65/0x2b0)
+[  554.503324] [<b013bfa9>] (ubifs_load_znode) from [<b012e551>] (ubifs_lookup_level0+0x8f/0xf2)
+[  554.503339] [<b012e551>] (ubifs_lookup_level0) from [<b012e5e9>] (ubifs_tnc_locate.part.4+0x35/0x11c)
+[  554.503354] [<b012e5e9>] (ubifs_tnc_locate.part.4) from [<b0129c09>] (ubifs_iget+0x55/0x348)
+[  554.503367] [<b0129c09>] (ubifs_iget) from [<b01277cd>] (ubifs_lookup+0x11d/0x1a4)
+[  554.503380] [<b01277cd>] (ubifs_lookup) from [<b007dc1d>] (__lookup_slow+0x69/0x84)
+[  554.503392] [<b007dc1d>] (__lookup_slow) from [<b007f299>] (walk_component+0x5d/0x8e)
+[  554.503408] [<b007f299>] (walk_component) from [<b007f57b>] (path_lookupat+0x51/0xaa)
+[  554.503421] [<b007f57b>] (path_lookupat) from [<b007fb2f>] (filename_lookup.part.21+0x35/0x6c)
+[  554.503436] [<b007fb2f>] (filename_lookup.part.21) from [<b007a8dd>] (vfs_statx+0x41/0xa0)
+[  554.503450] [<b007a8dd>] (vfs_statx) from [<b007acf7>] (vfs_fstatat+0x15/0x18)
+[  554.503462] [<b007acf7>] (vfs_fstatat) from [<b007ad93>] (__do_sys_lstat64+0x17/0x24)
+[  554.503475] [<b007ad93>] (__do_sys_lstat64) from [<b0008201>] (ret_fast_syscall+0x1/0x58)
+[  554.503483] Exception stack(0xb1e9dfa8 to 0xb1e9dff0)
+[  554.503493] dfa0:                   005430f8 00000000 005430e8 aea3ab60 aea3abd8 aea3ab60
+[  554.503504] dfc0: 005430f8 00000000 005430e8 000000c4 005409dc 00000000 005430e8 005415e8
+[  554.503514] dfe0: 00540d40 aea3ab60 004da354 a6ede04c
+[  554.503542] UBIFS error (ubi0:0 pid 1610): ubifs_iget: failed to read inode 2568, error -5
+[  554.503571] UBIFS error (ubi0:0 pid 1610): ubifs_lookup: dead directory entry 'w', error -5
+[  556.562602] rockchip-sfc ffac0000.spi: DMA wait for transfer finish timeout
+[  556.562636] rockchip-sfc ffac0000.spi: xfer data failed ret -110 dir 1
+[  556.562672] ubi0 warning: ubi_io_read: error -5 while reading 177 bytes from PEB 307:130216, read only 0 bytes, retry
+[  556.662724] rockchip-sfc ffac0000.spi: wait sfc idle timeout
+[  556.662770] ubi0 warning: ubi_io_read: error -5 while reading 188 bytes from PEB 393:8512, read only 0 bytes, retry
+[  558.722601] rockchip-sfc ffac0000.spi: DMA wait for transfer finish timeout
+[  558.722632] rockchip-sfc ffac0000.spi: xfer data failed ret -110 dir 1
+[  558.722666] ubi0 warning: ubi_io_read: error -5 while reading 177 bytes from PEB 307:130216, read only 0 bytes, retry
+[  558.822783] rockchip-sfc ffac0000.spi: wait sfc idle timeout
+[  558.822827] ubi0 warning: ubi_io_read: error -5 while reading 177 bytes from PEB 307:130216, read only 0 bytes, retry
+[  560.882605] rockchip-sfc ffac0000.spi: DMA wait for transfer finish timeout
+[  560.882637] rockchip-sfc ffac0000.spi: xfer data failed ret -110 dir 1
+[  560.882674] ubi0 warning: ubi_io_read: error -5 while reading 188 bytes from PEB 393:8512, read only 0 bytes, retry
+[  560.982783] rockchip-sfc ffac0000.spi: wait sfc idle timeout
+[  560.982832] ubi0 error: ubi_io_read: error -5 while reading 177 bytes from PEB 307:130216, read 0 bytes
+[  560.982849] CPU: 0 PID: 1615 Comm: sh Tainted: G           O      5.10.160 #22
+[  560.982857] Hardware name: Generic DT based system
+[  560.982883] [<b000f56d>] (unwind_backtrace) from [<b000e03f>] (show_stack+0xb/0xc)
+[  560.982900] [<b000e03f>] (show_stack) from [<b025c959>] (ubi_io_read+0x159/0x1e0)
+[  560.982917] [<b025c959>] (ubi_io_read) from [<b025b7ab>] (ubi_eba_read_leb+0x173/0x1f4)
+[  560.982932] [<b025b7ab>] (ubi_eba_read_leb) from [<b025aa9b>] (ubi_leb_read+0x43/0x74)
+[  560.982951] [<b025aa9b>] (ubi_leb_read) from [<b012bccf>] (ubifs_leb_read+0x1b/0x48)
+[  560.982968] [<b012bccf>] (ubifs_leb_read) from [<b012d3f9>] (fallible_read_node+0x35/0xc4)
+[  560.982983] [<b012d3f9>] (fallible_read_node) from [<b012e697>] (ubifs_tnc_locate.part.4+0xe3/0x11c)
+[  560.982999] [<b012e697>] (ubifs_tnc_locate.part.4) from [<b0129c09>] (ubifs_iget+0x55/0x348)
+[  560.983015] [<b0129c09>] (ubifs_iget) from [<b01277cd>] (ubifs_lookup+0x11d/0x1a4)
+[  560.983030] [<b01277cd>] (ubifs_lookup) from [<b007dc1d>] (__lookup_slow+0x69/0x84)
+[  560.983046] [<b007dc1d>] (__lookup_slow) from [<b007f299>] (walk_component+0x5d/0x8e)
+[  560.983062] [<b007f299>] (walk_component) from [<b007f57b>] (path_lookupat+0x51/0xaa)
+[  560.983077] [<b007f57b>] (path_lookupat) from [<b007fb2f>] (filename_lookup.part.21+0x35/0x6c)
+[  560.983094] [<b007fb2f>] (filename_lookup.part.21) from [<b007a8dd>] (vfs_statx+0x41/0xa0)
+[  560.983108] [<b007a8dd>] (vfs_statx) from [<b007acf7>] (vfs_fstatat+0x15/0x18)
+[  560.983123] [<b007acf7>] (vfs_fstatat) from [<b007ad6f>] (__do_sys_stat64+0x15/0x22)
+[  560.983138] [<b007ad6f>] (__do_sys_stat64) from [<b0008201>] (ret_fast_syscall+0x1/0x58)
+[  560.983146] Exception stack(0xb1e4ffa8 to 0xb1e4fff0)
+[  560.983159] ffa0:                   00000000 aecf66dc 00522e74 aecf6528 aecf65d8 aecf6528
+[  560.983172] ffc0: 00000000 aecf66dc 005223fc 000000c3 00000002 005209dc 00000001 00522e74
+[  560.983181] ffe0: 00520a60 aecf6528 00494008 a6ec544c
+[  560.983204] UBIFS error (ubi0:0 pid 1615): ubifs_leb_read: reading 177 bytes from LEB 305:126120 failed, error -5
+[  560.983215] CPU: 0 PID: 1615 Comm: sh Tainted: G           O      5.10.160 #22
+[  560.983221] Hardware name: Generic DT based system
+[  560.983234] [<b000f56d>] (unwind_backtrace) from [<b000e03f>] (show_stack+0xb/0xc)
+[  560.983247] [<b000e03f>] (show_stack) from [<b012bcf1>] (ubifs_leb_read+0x3d/0x48)
+[  560.983261] [<b012bcf1>] (ubifs_leb_read) from [<b012d3f9>] (fallible_read_node+0x35/0xc4)
+[  560.983275] [<b012d3f9>] (fallible_read_node) from [<b012e697>] (ubifs_tnc_locate.part.4+0xe3/0x11c)
+[  560.983289] [<b012e697>] (ubifs_tnc_locate.part.4) from [<b0129c09>] (ubifs_iget+0x55/0x348)
+[  560.983303] [<b0129c09>] (ubifs_iget) from [<b01277cd>] (ubifs_lookup+0x11d/0x1a4)
+[  560.983317] [<b01277cd>] (ubifs_lookup) from [<b007dc1d>] (__lookup_slow+0x69/0x84)
+[  560.983329] [<b007dc1d>] (__lookup_slow) from [<b007f299>] (walk_component+0x5d/0x8e)
+[  560.983342] [<b007f299>] (walk_component) from [<b007f57b>] (path_lookupat+0x51/0xaa)
+[  560.983356] [<b007f57b>] (path_lookupat) from [<b007fb2f>] (filename_lookup.part.21+0x35/0x6c)
+[  560.983371] [<b007fb2f>] (filename_lookup.part.21) from [<b007a8dd>] (vfs_statx+0x41/0xa0)
+[  560.983384] [<b007a8dd>] (vfs_statx) from [<b007acf7>] (vfs_fstatat+0x15/0x18)
+[  560.983399] [<b007acf7>] (vfs_fstatat) from [<b007ad6f>] (__do_sys_stat64+0x15/0x22)
+[  560.983412] [<b007ad6f>] (__do_sys_stat64) from [<b0008201>] (ret_fast_syscall+0x1/0x58)
+[  560.983419] Exception stack(0xb1e4ffa8 to 0xb1e4fff0)
+[  560.983430] ffa0:                   00000000 aecf66dc 00522e74 aecf6528 aecf65d8 aecf6528
+[  560.983441] ffc0: 00000000 aecf66dc 005223fc 000000c3 00000002 005209dc 00000001 00522e74
+[  560.983450] ffe0: 00520a60 aecf6528 00494008 a6ec544c
+[  560.983464] UBIFS error (ubi0:0 pid 1615): fallible_read_node: cannot read node type 0 from LEB 305:126120, error -5
+[  563.042602] rockchip-sfc ffac0000.spi: DMA wait for transfer finish timeout
+[  563.042634] rockchip-sfc ffac0000.spi: xfer data failed ret -110 dir 1
+[  563.042667] ubi0 warning: ubi_io_read: error -5 while reading 188 bytes from PEB 393:8512, read only 0 bytes, retry
+[  563.142723] rockchip-sfc ffac0000.spi: wait sfc idle timeout
+[  563.142768] ubi0 error: ubi_io_read: error -5 while reading 188 bytes from PEB 393:8512, read 0 bytes
+[  563.142784] CPU: 0 PID: 1610 Comm: ls Tainted: G           O      5.10.160 #22
+[  563.142791] Hardware name: Generic DT based system
+[  563.142818] [<b000f56d>] (unwind_backtrace) from [<b000e03f>] (show_stack+0xb/0xc)
+[  563.142835] [<b000e03f>] (show_stack) from [<b025c959>] (ubi_io_read+0x159/0x1e0)
+[  563.142854] [<b025c959>] (ubi_io_read) from [<b025b7ab>] (ubi_eba_read_leb+0x173/0x1f4)
+[  563.142869] [<b025b7ab>] (ubi_eba_read_leb) from [<b025aa9b>] (ubi_leb_read+0x43/0x74)
+[  563.142889] [<b025aa9b>] (ubi_leb_read) from [<b012bccf>] (ubifs_leb_read+0x1b/0x48)
+[  563.142904] [<b012bccf>] (ubifs_leb_read) from [<b012cbab>] (ubifs_read_node+0x8f/0x158)
+[  563.142920] [<b012cbab>] (ubifs_read_node) from [<b013bfa9>] (ubifs_load_znode+0x65/0x2b0)
+[  563.142936] [<b013bfa9>] (ubifs_load_znode) from [<b012e551>] (ubifs_lookup_level0+0x8f/0xf2)
+[  563.142952] [<b012e551>] (ubifs_lookup_level0) from [<b012e5e9>] (ubifs_tnc_locate.part.4+0x35/0x11c)
+[  563.142968] [<b012e5e9>] (ubifs_tnc_locate.part.4) from [<b0129c09>] (ubifs_iget+0x55/0x348)
+[  563.142983] [<b0129c09>] (ubifs_iget) from [<b01277cd>] (ubifs_lookup+0x11d/0x1a4)
+[  563.143000] [<b01277cd>] (ubifs_lookup) from [<b007dc1d>] (__lookup_slow+0x69/0x84)
+[  563.143016] [<b007dc1d>] (__lookup_slow) from [<b007f299>] (walk_component+0x5d/0x8e)
+[  563.143031] [<b007f299>] (walk_component) from [<b007f57b>] (path_lookupat+0x51/0xaa)
+[  563.143045] [<b007f57b>] (path_lookupat) from [<b007fb2f>] (filename_lookup.part.21+0x35/0x6c)
+[  563.143063] [<b007fb2f>] (filename_lookup.part.21) from [<b007a8dd>] (vfs_statx+0x41/0xa0)
+[  563.143077] [<b007a8dd>] (vfs_statx) from [<b007acf7>] (vfs_fstatat+0x15/0x18)
+[  563.143093] [<b007acf7>] (vfs_fstatat) from [<b007ad93>] (__do_sys_lstat64+0x17/0x24)
+[  563.143109] [<b007ad93>] (__do_sys_lstat64) from [<b0008201>] (ret_fast_syscall+0x1/0x58)
+[  563.143117] Exception stack(0xb1e9dfa8 to 0xb1e9dff0)
+[  563.143130] dfa0:                   005430f8 00000000 005430e8 aea3ab60 aea3abd8 aea3ab60
+[  563.143143] dfc0: 005430f8 00000000 005430e8 000000c4 005409dc 00000000 005430e8 005415e8
+[  563.143151] dfe0: 00540d40 aea3ab60 004da354 a6ede04c
+[  563.143172] UBIFS error (ubi0:0 pid 1610): ubifs_leb_read: reading 188 bytes from LEB 391:4416 failed, error -5
+[  563.143184] CPU: 0 PID: 1610 Comm: ls Tainted: G           O      5.10.160 #22
+[  563.143190] Hardware name: Generic DT based system
+[  563.143204] [<b000f56d>] (unwind_backtrace) from [<b000e03f>] (show_stack+0xb/0xc)
+[  563.143219] [<b000e03f>] (show_stack) from [<b012bcf1>] (ubifs_leb_read+0x3d/0x48)
+[  563.143232] [<b012bcf1>] (ubifs_leb_read) from [<b012cbab>] (ubifs_read_node+0x8f/0x158)
+[  563.143245] [<b012cbab>] (ubifs_read_node) from [<b013bfa9>] (ubifs_load_znode+0x65/0x2b0)
+[  563.143259] [<b013bfa9>] (ubifs_load_znode) from [<b012e551>] (ubifs_lookup_level0+0x8f/0xf2)
+[  563.143272] [<b012e551>] (ubifs_lookup_level0) from [<b012e5e9>] (ubifs_tnc_locate.part.4+0x35/0x11c)
+[  563.143286] [<b012e5e9>] (ubifs_tnc_locate.part.4) from [<b0129c09>] (ubifs_iget+0x55/0x348)
+[  563.143300] [<b0129c09>] (ubifs_iget) from [<b01277cd>] (ubifs_lookup+0x11d/0x1a4)
+[  563.143315] [<b01277cd>] (ubifs_lookup) from [<b007dc1d>] (__lookup_slow+0x69/0x84)
+[  563.143328] [<b007dc1d>] (__lookup_slow) from [<b007f299>] (walk_component+0x5d/0x8e)
+[  563.143341] [<b007f299>] (walk_component) from [<b007f57b>] (path_lookupat+0x51/0xaa)
+[  563.143354] [<b007f57b>] (path_lookupat) from [<b007fb2f>] (filename_lookup.part.21+0x35/0x6c)
+[  563.143369] [<b007fb2f>] (filename_lookup.part.21) from [<b007a8dd>] (vfs_statx+0x41/0xa0)
+[  563.143382] [<b007a8dd>] (vfs_statx) from [<b007acf7>] (vfs_fstatat+0x15/0x18)
+[  563.143396] [<b007acf7>] (vfs_fstatat) from [<b007ad93>] (__do_sys_lstat64+0x17/0x24)
+[  563.143410] [<b007ad93>] (__do_sys_lstat64) from [<b0008201>] (ret_fast_syscall+0x1/0x58)
+[  563.143418] Exception stack(0xb1e9dfa8 to 0xb1e9dff0)
+[  563.143429] dfa0:                   005430f8 00000000 005430e8 aea3ab60 aea3abd8 aea3ab60
+[  563.143440] dfc0: 005430f8 00000000 005430e8 000000c4 005409dc 00000000 005430e8 005415e8
+[  563.143449] dfe0: 00540d40 aea3ab60 004da354 a6ede04c
+[  563.143475] UBIFS error (ubi0:0 pid 1610): ubifs_iget: failed to read inode 2439, error -5
+[  563.143505] UBIFS error (ubi0:0 pid 1610): ubifs_lookup: dead directory entry '[[', error -5

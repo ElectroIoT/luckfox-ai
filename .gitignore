@@ -1,0 +1,11 @@
+build/
+*.o
+*.rknn.tmp
+# local captures and logs
+docs/test_camera.h264
+*.log
+# never commit secrets
+config/*.secret*
+config/local.json
+# camera captures are photos of the surroundings; keep them out of history
+docs/samples/
