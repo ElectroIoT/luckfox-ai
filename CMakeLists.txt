@@ -42,7 +42,7 @@ set(RK_INCLUDES
 set(RK_LIBS rockiva sample_comm rockit rockchip_mpp rkaiq rga pthread)
 
 # ---- modules (one static library each)
-add_library(aid_system STATIC src/system/config.cc src/system/sysinfo.cc)
+add_library(aid_system STATIC src/system/config.cc src/system/sysinfo.cc src/system/json_util.cc src/system/log.cc)
 target_include_directories(aid_system PUBLIC src/system)
 
 add_library(aid_camera STATIC src/camera/camera.cc)
@@ -53,14 +53,34 @@ add_library(aid_streaming STATIC src/streaming/streamer.cc)
 target_include_directories(aid_streaming PUBLIC src/streaming ${RK_INCLUDES})
 target_link_libraries(aid_streaming PUBLIC aid_camera rtsp)
 
-add_library(aid_webserver STATIC src/webserver/http_server.cc)
+add_library(aid_events STATIC src/events/event_engine.cc src/events/event_store.cc)
+target_include_directories(aid_events PUBLIC src/events)
+target_link_libraries(aid_events PUBLIC aid_system)
+
+# Rockchip's YOLOv5 demo code (Apache-2.0, see its NOTICE.md): compiled without warnings.
+set(ROCKCHIP_SRC src/ai/third_party/rockchip/yolov5.cc src/ai/third_party/rockchip/postprocess.cc)
+set_source_files_properties(${ROCKCHIP_SRC} PROPERTIES COMPILE_FLAGS "-w")
+add_library(aid_ai STATIC src/ai/detector.cc src/ai/detection_service.cc src/ai/preprocess.cc src/ai/motion.cc ${ROCKCHIP_SRC})
+target_include_directories(aid_ai PUBLIC src/ai src/ai/third_party/rockchip src/camera ${RK_INCLUDES})
+target_link_libraries(aid_ai PUBLIC aid_events aid_system rknnmrt pthread)
+
+add_library(aid_webserver STATIC src/webserver/http_server.cc src/webserver/auth.cc src/webserver/api.cc)
 target_include_directories(aid_webserver PUBLIC src/webserver)
+target_link_libraries(aid_webserver PUBLIC aid_events aid_system pthread)
+
+add_library(aid_mqtt STATIC src/mqtt/mqtt_client.cc src/mqtt/ha_discovery.cc)
+target_include_directories(aid_mqtt PUBLIC src/mqtt)
+target_link_libraries(aid_mqtt PUBLIC aid_system pthread)
+
+add_library(aid_gpio STATIC src/gpio/gpio.cc)
+target_include_directories(aid_gpio PUBLIC src/gpio)
+target_link_libraries(aid_gpio PUBLIC aid_system)
 
 # ---- programs
 add_executable(aid-camera src/camera/aid_camera_cli.cc)
 target_link_libraries(aid-camera PRIVATE aid_camera)
 
 add_executable(aid-core src/core/aid_core.cc)
-target_link_libraries(aid-core PRIVATE aid_system aid_camera aid_streaming aid_webserver)
+target_link_libraries(aid-core PRIVATE aid_system aid_camera aid_streaming aid_events aid_ai aid_webserver aid_mqtt aid_gpio)
 
 install(TARGETS aid-camera aid-core DESTINATION bin)

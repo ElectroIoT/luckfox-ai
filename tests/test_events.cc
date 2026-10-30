@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "config.h"
+#include "aid_config.h"
 #include "event_engine.h"
 #include "event_store.h"
 #include "json_util.h"

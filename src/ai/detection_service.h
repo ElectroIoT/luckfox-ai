@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-#include "config.h"
+#include "aid_config.h"
 #include "detector.h"
 #include "frame_view.h"
 

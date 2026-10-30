@@ -1,4 +1,4 @@
-#include "config.h"
+#include "aid_config.h"
 
 #include <sys/stat.h>
 #include <unistd.h>

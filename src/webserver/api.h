@@ -16,7 +16,7 @@
 #include <vector>
 
 #include "auth.h"
-#include "config.h"
+#include "aid_config.h"
 #include "event_store.h"
 #include "http_server.h"
 

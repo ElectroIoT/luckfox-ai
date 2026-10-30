@@ -12,7 +12,7 @@
 #include <utility>
 #include <vector>
 
-#include "config.h"
+#include "aid_config.h"
 
 namespace aid {
 

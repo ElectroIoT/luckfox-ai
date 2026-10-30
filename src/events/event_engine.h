@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "config.h"
+#include "aid_config.h"
 
 namespace aid {
 
@@ -58,6 +58,7 @@ public:
     std::map<std::string, int> currentCounts() const;
     bool groupPresent(const std::string& group) const;
     uint64_t lastEventId() const { return nextId_ - 1; }
+    bool motionActive() const { return motionActive_; }
 
 private:
     struct Presence {

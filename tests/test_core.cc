@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include "config.h"
+#include "aid_config.h"
 #include "http_server.h"
 
 static int g_fail = 0, g_run = 0;
