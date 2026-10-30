@@ -20,5 +20,5 @@ build_run() {
 build_run test_core   "$ROOT/tests/test_core.cc" "${SYS[@]}" "$ROOT/src/webserver/http_server.cc"
 build_run test_events "$ROOT/tests/test_events.cc" "${SYS[@]}" "$ROOT/src/events/event_engine.cc" "$ROOT/src/events/event_store.cc"
 build_run test_auth   "$ROOT/tests/test_auth.cc" "${SYS[@]}" "$ROOT/src/webserver/auth.cc"
-build_run test_mqtt   "$ROOT/tests/test_mqtt.cc" "${SYS[@]}" "$ROOT/src/mqtt/mqtt_client.cc"
+build_run test_mqtt   "$ROOT/tests/test_mqtt.cc" "${SYS[@]}" "$ROOT/src/mqtt/mqtt_client.cc" "$ROOT/src/mqtt/ha_discovery.cc"
 build_run test_gpio   "$ROOT/tests/test_gpio.cc" "${SYS[@]}" "$ROOT/src/gpio/gpio.cc"
