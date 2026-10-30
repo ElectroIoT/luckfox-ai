@@ -17,6 +17,20 @@ namespace {
 constexpr int kH264Chn = 0;
 constexpr int kJpegChn = 1;
 
+// True if the first bytes of an Annex-B packet contain an IDR slice (NAL unit type 5).
+bool containsIdr(const uint8_t* d, size_t len) {
+    const size_t n = len < 256 ? len : 256;
+    for (size_t i = 0; i + 4 < n; ++i) {
+        if (d[i] != 0 || d[i + 1] != 0) continue;
+        size_t idx = 0;
+        if (d[i + 2] == 1) idx = i + 3;
+        else if (d[i + 2] == 0 && d[i + 3] == 1) idx = i + 4;
+        else continue;
+        if (idx < len && (d[idx] & 0x1f) == 5) return true;
+    }
+    return false;
+}
+
 uint64_t nowUs() {
     struct timespec t = {0, 0};
     clock_gettime(CLOCK_MONOTONIC, &t);
@@ -48,6 +62,7 @@ struct Streamer::Impl {
     StreamStats stats;
 
     std::mutex snapMutex;
+    std::mutex frameMutex;       // one holder of a VI frame at a time
     bool snapshotDirty = false;  // set when a snapshot failed half-way (guarded by snapMutex)
 
     MPP_CHN_S src, dstH264;
@@ -75,7 +90,7 @@ struct Streamer::Impl {
                     std::lock_guard<std::mutex> lock(statsMutex);
                     stats.frames++;
                     stats.bytes += pack.u32Len;
-                    if (pack.DataType.enH264EType == H264E_NALU_IDRSLICE) stats.keyframes++;
+                    if (containsIdr((const uint8_t*)data, pack.u32Len)) stats.keyframes++;
                 }
                 winFrames++;
                 winBytes += pack.u32Len;
@@ -263,6 +278,7 @@ bool Streamer::snapshot(std::vector<uint8_t>* jpeg, std::string* err) {
     RK_MPI_VENC_SetJpegParam(kJpegChn, &jp);
 
     const uint64_t t0 = nowUs();
+    std::unique_lock<std::mutex> frameLock(m.frameMutex);
     // A fresh frame from the camera channel (the H.264 encoder is bound to the same channel).
     VIDEO_FRAME_INFO_S frame;
     memset(&frame, 0, sizeof(frame));
@@ -291,6 +307,7 @@ bool Streamer::snapshot(std::vector<uint8_t>* jpeg, std::string* err) {
         }
     }
     RK_MPI_VI_ReleaseChnFrame(m.cfg.viDev, m.cfg.viChn, &frame);
+    frameLock.unlock();
     if (!ok) m.snapshotDirty = true;
     const uint64_t t2 = nowUs();
     {
@@ -301,6 +318,25 @@ bool Streamer::snapshot(std::vector<uint8_t>* jpeg, std::string* err) {
         if (ok) m.stats.snapshots++;
     }
     return ok;
+}
+
+bool Streamer::withFrame(int timeoutMs, const std::function<void(const FrameView&)>& fn) {
+    Impl& m = *impl_;
+    if (!m.started) return false;
+    std::lock_guard<std::mutex> lock(m.frameMutex);
+    VIDEO_FRAME_INFO_S frame;
+    memset(&frame, 0, sizeof(frame));
+    if (RK_MPI_VI_GetChnFrame(m.cfg.viDev, m.cfg.viChn, &frame, timeoutMs) != RK_SUCCESS) return false;
+    FrameView v;
+    v.y = (const uint8_t*)RK_MPI_MB_Handle2VirAddr(frame.stVFrame.pMbBlk);
+    v.width = (int)frame.stVFrame.u32Width;
+    v.height = (int)frame.stVFrame.u32Height;
+    v.stride = (int)frame.stVFrame.u32VirWidth;
+    v.vstride = (int)frame.stVFrame.u32VirHeight;
+    v.ptsUs = frame.stVFrame.u64PTS;
+    if (v.y) fn(v);
+    RK_MPI_VI_ReleaseChnFrame(m.cfg.viDev, m.cfg.viChn, &frame);
+    return v.y != nullptr;
 }
 
 }  // namespace aid

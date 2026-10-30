@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="${TMPDIR:-/tmp}/aid_tests"
 mkdir -p "$OUT"
-INC=(-I"$ROOT/src/system" -I"$ROOT/src/webserver" -I"$ROOT/src/events" -I"$ROOT/src/mqtt" -I"$ROOT/src/gpio")
+INC=(-I"$ROOT/src/system" -I"$ROOT/src/webserver" -I"$ROOT/src/events" -I"$ROOT/src/mqtt" -I"$ROOT/src/gpio" -I"$ROOT/src/ai" -I"$ROOT/src/camera")
 SYS=("$ROOT/src/system/config.cc" "$ROOT/src/system/json_util.cc" "$ROOT/src/system/log.cc")
 
 # Each test binary is built from the sources it needs; a test whose sources do not exist yet is skipped.
@@ -22,3 +22,4 @@ build_run test_events "$ROOT/tests/test_events.cc" "${SYS[@]}" "$ROOT/src/events
 build_run test_auth   "$ROOT/tests/test_auth.cc" "${SYS[@]}" "$ROOT/src/webserver/auth.cc"
 build_run test_mqtt   "$ROOT/tests/test_mqtt.cc" "${SYS[@]}" "$ROOT/src/mqtt/mqtt_client.cc" "$ROOT/src/mqtt/ha_discovery.cc"
 build_run test_gpio   "$ROOT/tests/test_gpio.cc" "${SYS[@]}" "$ROOT/src/gpio/gpio.cc"
+build_run test_ai     "$ROOT/tests/test_ai.cc" "$ROOT/src/ai/preprocess.cc" "$ROOT/src/ai/motion.cc"

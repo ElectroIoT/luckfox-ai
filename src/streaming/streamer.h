@@ -5,9 +5,12 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include "frame_view.h"
 
 namespace aid {
 
@@ -55,6 +58,11 @@ public:
 
     // Takes one JPEG from the hardware encoder. Thread-safe (one snapshot at a time).
     bool snapshot(std::vector<uint8_t>* jpeg, std::string* err);
+
+    // Gives fn one camera frame (NV12) and releases it afterwards. Only one user holds a frame at
+    // a time (the VI channel has 2 buffers, one of them is used by the bound encoder).
+    // Returns false if no frame arrived within timeoutMs.
+    bool withFrame(int timeoutMs, const std::function<void(const FrameView&)>& fn);
 
 private:
     struct Impl;

@@ -1,43 +1,53 @@
-// Minimal HTTP/1.1 server for aid-core (Phase 4): GET only, one connection at a time,
-// short timeouts, optional bearer token. It is NOT the dashboard server: no login pages,
-// no file serving. The dashboard (Phase 7) will build on or replace it.
+// Small HTTP/1.1 server for aid-core: GET/POST/DELETE, bodies up to 16 KB, one short-lived thread
+// per connection (at most 6 at once, small stacks), short timeouts, security headers, static files
+// from a directory. It does not do authentication itself: the handler decides (see api.h).
 #pragma once
 
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace aid {
 
 struct HttpRequest {
     std::string method;
-    std::string path;    // without the query string
-    std::string query;   // after '?', not decoded
-    std::string bearer;  // from "Authorization: Bearer <token>", empty if absent
+    std::string path;     // without the query string
+    std::string query;    // after '?', not decoded
+    std::string bearer;   // from "Authorization: Bearer <token>", empty if absent
+    std::string cookie;   // raw Cookie header
+    std::string body;
+    std::string clientIp;
+    std::map<std::string, std::string> headers;  // lower-case names
 };
 
 struct HttpResponse {
     int status = 200;
-    std::string contentType = "text/plain";
+    std::string contentType = "text/plain; charset=utf-8";
     std::vector<uint8_t> body;
+    std::vector<std::pair<std::string, std::string>> headers;  // extra headers (e.g. Set-Cookie)
 };
 
-// Pure function, unit-testable on the PC. `head` is the request text up to and including the
-// blank line. Returns false for anything that is not a well-formed request line.
+// Pure helpers (unit-tested on the PC).
 bool parseHttpRequest(const std::string& head, HttpRequest* out);
-
-// Looks for `token=<value>` in a query string; returns "" if absent.
-std::string queryParam(const std::string& query, const std::string& name);
-
-// Compares in time that does not depend on where the strings differ.
+std::string queryParam(const std::string& query, const std::string& name);  // not URL-decoded
+std::string urlDecode(const std::string& s);
+std::string cookieValue(const std::string& cookieHeader, const std::string& name);
 bool constantTimeEqual(const std::string& a, const std::string& b);
+// Bearer header or ?token= must equal `token` (which must be non-empty).
+bool tokenAuthorized(const HttpRequest& req, const std::string& token);
+void setText(HttpResponse* r, int status, const std::string& text, const std::string& type = "text/plain; charset=utf-8");
+
+// Serves a file below webDir. Only [A-Za-z0-9._/-] in the path, no "..", no hidden files,
+// "/" means "/index.html". Returns false if the file is not served (the caller sends 404).
+bool serveStaticFile(const std::string& webDir, const std::string& urlPath, HttpResponse* resp);
 
 class HttpServer {
 public:
-    // Return true if the request was handled (the response then starts as 200 OK with an
-    // empty body; set status/contentType/body as needed). Return false for "not found".
+    // Return true if the request was handled (the response starts as 200 OK with an empty body).
     using Handler = std::function<bool(const HttpRequest&, HttpResponse*)>;
 
     HttpServer();
@@ -45,13 +55,12 @@ public:
     HttpServer(const HttpServer&) = delete;
     HttpServer& operator=(const HttpServer&) = delete;
 
-    // token empty  -> listens on 127.0.0.1 only, no token check.
-    // token set    -> listens on all interfaces; every request needs the token
-    //                 (Authorization: Bearer <token> or ?token=<token>).
-    // A token shorter than 16 characters is refused.
-    bool start(int port, const std::string& token, Handler handler, std::string* err);
+    // allInterfaces=false -> 127.0.0.1 only. The caller must have authentication in place
+    // before it passes true.
+    bool start(int port, bool allInterfaces, Handler handler, std::string* err);
     void stop();
     bool isLocalOnly() const;
+    int activeConnections() const;
 
 private:
     struct Impl;
