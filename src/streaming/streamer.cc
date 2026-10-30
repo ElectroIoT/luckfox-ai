@@ -257,30 +257,44 @@ bool Streamer::snapshot(std::vector<uint8_t>* jpeg, std::string* err) {
     jp.u32Qfactor = (RK_U32)m.cfg.jpegQuality;
     RK_MPI_VENC_SetJpegParam(kJpegChn, &jp);
 
+    const uint64_t t0 = nowUs();
     // A fresh frame from the camera channel (the H.264 encoder is bound to the same channel).
     VIDEO_FRAME_INFO_S frame;
     memset(&frame, 0, sizeof(frame));
     RK_S32 r = RK_MPI_VI_GetChnFrame(m.cfg.viDev, m.cfg.viChn, &frame, 2000);
     if (r != RK_SUCCESS) { *err = "RK_MPI_VI_GetChnFrame " + hex(r); return false; }
+    const uint64_t t1 = nowUs();
 
+    // The camera frame must stay held until the JPEG encoder has produced its output.
+    bool ok = false;
     VENC_RECV_PIC_PARAM_S recv;
     memset(&recv, 0, sizeof(recv));
     recv.s32RecvPicNum = 1;
     r = RK_MPI_VENC_StartRecvFrame(kJpegChn, &recv);
     if (r == RK_SUCCESS) r = RK_MPI_VENC_SendFrame(kJpegChn, &frame, 1000);
+    if (r != RK_SUCCESS) {
+        *err = "JPEG encode request " + hex(r);
+    } else {
+        r = RK_MPI_VENC_GetStream(kJpegChn, &stream, 2000);
+        if (r != RK_SUCCESS) {
+            *err = "GetStream(JPEG) " + hex(r);
+        } else {
+            const uint8_t* data = (const uint8_t*)RK_MPI_MB_Handle2VirAddr(pack.pMbBlk);
+            jpeg->assign(data, data + pack.u32Len);
+            RK_MPI_VENC_ReleaseStream(kJpegChn, &stream);
+            ok = true;
+        }
+    }
     RK_MPI_VI_ReleaseChnFrame(m.cfg.viDev, m.cfg.viChn, &frame);
-    if (r != RK_SUCCESS) { *err = "JPEG encode request " + hex(r); return false; }
-
-    r = RK_MPI_VENC_GetStream(kJpegChn, &stream, 2000);
-    if (r != RK_SUCCESS) { *err = "GetStream(JPEG) " + hex(r); return false; }
-    const uint8_t* data = (const uint8_t*)RK_MPI_MB_Handle2VirAddr(pack.pMbBlk);
-    jpeg->assign(data, data + pack.u32Len);
-    RK_MPI_VENC_ReleaseStream(kJpegChn, &stream);
+    const uint64_t t2 = nowUs();
     {
         std::lock_guard<std::mutex> sl(m.statsMutex);
-        m.stats.snapshots++;
+        m.stats.snapFrameWaitMs = (t1 - t0) / 1000.0;
+        m.stats.snapEncodeMs = (t2 - t1) / 1000.0;
+        m.stats.snapTotalMs = (t2 - t0) / 1000.0;
+        if (ok) m.stats.snapshots++;
     }
-    return true;
+    return ok;
 }
 
 }  // namespace aid

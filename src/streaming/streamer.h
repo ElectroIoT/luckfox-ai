@@ -34,6 +34,11 @@ struct StreamStats {
     double latencyAvgMs = -1;   // capture timestamp -> encoded, averaged over the window; -1 if unavailable
     double latencyMaxMs = -1;
     uint64_t snapshots = 0;
+    // Stage timings of the last snapshot in ms (-1 = none yet): waiting for a camera frame,
+    // JPEG encode request + result, and the total.
+    double snapFrameWaitMs = -1;
+    double snapEncodeMs = -1;
+    double snapTotalMs = -1;
 };
 
 class Streamer {

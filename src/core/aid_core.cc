@@ -43,7 +43,8 @@ std::string statusJson(const aid::Config& cfg, aid::Streamer& streamer) {
       << ", \"recent_fps\": " << s.recentFps << ", \"recent_kbps\": " << s.recentKbps << ",\n";
     o << "             \"encode_latency_avg_ms\": " << s.latencyAvgMs
       << ", \"encode_latency_max_ms\": " << s.latencyMaxMs << ", \"snapshots\": " << s.snapshots
-      << "},\n";
+      << ",\n             \"last_snapshot_ms\": {\"frame_wait\": " << s.snapFrameWaitMs
+      << ", \"encode\": " << s.snapEncodeMs << ", \"total\": " << s.snapTotalMs << "}},\n";
     o << "  \"system\": {\"soc_temp_c\": " << aid::readSocTempC()
       << ", \"mem_available_mb\": " << aid::memAvailableMB()
       << ", \"process_rss_mb\": " << aid::processRssMB() << "}\n";
