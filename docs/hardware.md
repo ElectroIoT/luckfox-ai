@@ -206,4 +206,5 @@ Findings:
 - CPU: aid-core about 11.4 % of the single core in steady state (about 25 % in the first minute); the `/proc/stat` whole-system figure reads 5 to 7 % and is not trusted (it under-counts bursty load on this kernel: it came out lower than aid-core's own process time). RAM: aid-core RSS 8.6 MB, free about 28 MB (4 MB less after `mlockall`). SoC 62 to 66 C.
 - Cold boot to dashboard answering: 26 s (reboot command to `/health` OK). Crash (`kill -9`) to dashboard back: 12 s.
 - Snapshot: 7 to 10 ms inside the program, 11 ms over the LAN (70 KB).
-- Not measured: accuracy, multi-viewer load, hours-long stability, the NPU's own utilisation, power draw.
+- **9-minute soak** (18 samples, 30 s apart, final software): process uptime 20 s to 531 s, 15 208 frames, 1 034 detection runs; encoder 26.5 to 29.0 fps; inference 88.8 to 89.0 ms (no drift); aid-core RSS constant at 8.68 MB; free RAM constant at 28.0 MB; aid-core CPU 10.6 to 12.0 %; SoC temperature 63.6 to 69.6 C (rising slowly, no plateau seen); 16 threads, 71 open files; flash errors 0; root filesystem writable.
+- Not measured: accuracy, multi-viewer load, stability over hours or days, the NPU's own utilisation, power draw, the chip's temperature limit.

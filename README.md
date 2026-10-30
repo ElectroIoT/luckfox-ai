@@ -36,7 +36,7 @@ Built and tested on one board (Pico Pro, SC3336 camera, Buildroot firmware 25060
 | microSD storage | **Not tested** (no card) | |
 | Video recording to a file, H.265 stream, manual exposure/gain setter, per-camera restart | **Not implemented** | |
 | Own model conversion (RKNN-Toolkit2) | **Not done**; the Luckfox model is used | `docs/ai-models.md` |
-| Long-term stability | **Not established**: longest uninterrupted run about 45 min with the final software around 10 min | |
+| Stability | **9-minute soak on the final software**: 15 208 frames, 1 034 detections, memory flat (RSS 8.68 MB, 28.04 MB free throughout), 28 to 29 fps, 0 flash errors, temperature 63.6 to 69.6 C and still creeping up. **Hours or days are untested.** | `docs/hardware.md` section 9 |
 
 ## Known problems (important)
 - **The board's SPI flash controller timed out four times** during development (files unreadable, root filesystem read-only) until a restart. Cause not proven; possibly power, possibly the flash itself. The software avoids flash access while running and the supervisor reboots by itself if it happens. See `docs/streaming.md` and `docs/firmware.md`.
