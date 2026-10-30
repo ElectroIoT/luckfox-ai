@@ -31,7 +31,7 @@ Use a good USB-C data cable. Power the board from a **separate 5 V / 2 A adapter
 | A bad update | `bash scripts/restore.sh` for settings; rebuild an older commit with `git checkout <commit>` and run `scripts/build.sh` and `scripts/deploy.sh`. |
 
 ## Power
-Development showed SPI flash controller timeouts (`rockchip-sfc ... DMA wait for transfer finish timeout`) four times, first while the board was powered from a PC USB port. After switching to a 5 V adapter the board ran for long stretches without errors, but the cause was **not proven** to be power. Use an adapter rated 5 V / 2 A or more and a short, thick cable. See `docs/streaming.md` for the full account and the safeguards (no flash writes while running, supervisor reboot on a read-only root).
+Development showed SPI flash controller timeouts (`rockchip-sfc ... DMA wait for transfer finish timeout`) four times, first while the board was powered from a PC USB port. After switching to a 5 V adapter the board ran for long stretches without errors, but the cause was **not proven** to be power. Use an adapter rated 5 V / 2 A or more (a 5 V / 3 A adapter is in use now; the board then ran almost 2 hours without a flash error, which fits but does not prove the power theory) and a short, thick cable. See `docs/streaming.md` for the full account and the safeguards (no flash writes while running, supervisor reboot on a read-only root).
 
 ## Things that were not done
 - No custom kernel or device-tree changes (so the hardware watchdog, which this kernel does not expose, is not available; the supervisor is a software substitute).

@@ -207,4 +207,5 @@ Findings:
 - Cold boot to dashboard answering: 26 s (reboot command to `/health` OK). Crash (`kill -9`) to dashboard back: 12 s.
 - Snapshot: 7 to 10 ms inside the program, 11 ms over the LAN (70 KB).
 - **9-minute soak** (18 samples, 30 s apart, final software): process uptime 20 s to 531 s, 15 208 frames, 1 034 detection runs; encoder 26.5 to 29.0 fps; inference 88.8 to 89.0 ms (no drift); aid-core RSS constant at 8.68 MB; free RAM constant at 28.0 MB; aid-core CPU 10.6 to 12.0 %; SoC temperature 63.6 to 69.6 C (rising slowly, no plateau seen); 16 threads, 71 open files; flash errors 0; root filesystem writable.
-- Not measured: accuracy, multi-viewer load, stability over hours or days, the NPU's own utilisation, power draw, the chip's temperature limit.
+- **Longer run** (same software, 5 V / 3 A adapter, checked afterwards): program uptime 6 964 s (1 h 56 min) with no restart, 13 551 detection runs, average inference 89.03 ms, RSS 8.66 MB, free RAM 27.4 MB, SoC 66.6 C, 198 817 frames encoded, flash errors 0.
+- Not measured: accuracy, multi-viewer load, stability over days, the NPU's own utilisation, power draw, the chip's temperature limit.
