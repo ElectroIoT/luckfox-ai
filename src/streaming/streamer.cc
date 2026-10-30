@@ -48,6 +48,7 @@ struct Streamer::Impl {
     StreamStats stats;
 
     std::mutex snapMutex;
+    bool snapshotDirty = false;  // set when a snapshot failed half-way (guarded by snapMutex)
 
     MPP_CHN_S src, dstH264;
 
@@ -248,9 +249,13 @@ bool Streamer::snapshot(std::vector<uint8_t>* jpeg, std::string* err) {
     memset(&pack, 0, sizeof(pack));
     stream.pstPack = &pack;
 
-    // Drop any frame left over from an earlier snapshot that timed out.
-    while (RK_MPI_VENC_GetStream(kJpegChn, &stream, 0) == RK_SUCCESS)
-        RK_MPI_VENC_ReleaseStream(kJpegChn, &stream);
+    // Only after a failed snapshot can a stale JPEG be waiting; drop it with a short, explicit
+    // timeout. (A timeout of 0 is NOT "do not wait": measured on the board it blocks about 2 s.)
+    if (m.snapshotDirty) {
+        for (int i = 0; i < 4 && RK_MPI_VENC_GetStream(kJpegChn, &stream, 20) == RK_SUCCESS; ++i)
+            RK_MPI_VENC_ReleaseStream(kJpegChn, &stream);
+        m.snapshotDirty = false;
+    }
 
     VENC_JPEG_PARAM_S jp;
     memset(&jp, 0, sizeof(jp));
@@ -286,6 +291,7 @@ bool Streamer::snapshot(std::vector<uint8_t>* jpeg, std::string* err) {
         }
     }
     RK_MPI_VI_ReleaseChnFrame(m.cfg.viDev, m.cfg.viChn, &frame);
+    if (!ok) m.snapshotDirty = true;
     const uint64_t t2 = nowUs();
     {
         std::lock_guard<std::mutex> sl(m.statsMutex);
