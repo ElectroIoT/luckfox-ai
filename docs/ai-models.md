@@ -20,7 +20,7 @@
 | Picture preparation (CPU) | 34 to 39 ms |
 | Box decoding + NMS (CPU) | about 2 ms |
 | Whole pass | about 125 ms, so 500 ms interval = about 2 detections per second |
-| `aid-core` CPU use with detection every 500 ms and one viewer | 11 to 26 % of the single core (several samples) |
+| `aid-core` CPU use with detection every 500 ms | about 11 % of the single core in steady state (9-minute soak); about 25 % in the first minute (model loading) |
 | Free RAM with everything running | about 28 MB |
 
 Not measured: accuracy (precision/recall) of any kind, behaviour at night, behaviour with many objects, shorter intervals than 500 ms, the NPU's own load (the debug file for it does not exist on this kernel).

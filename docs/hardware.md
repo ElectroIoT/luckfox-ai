@@ -203,7 +203,7 @@ Findings:
 (`aid-core` 1.0.0-rc1 + supervisor; numbers from the program's own `status.json` and `/proc`; single runs, one scene, one viewer.)
 - Encoder 28.5 to 30 fps at 1920x1080, about 2 Mbit/s, capture-to-encoded latency 44.6 ms, key frame every 60 frames (counter verified: 9 in 504 frames after the counter fix).
 - NPU inference 88.9 ms average (600+ runs), picture preparation 34 to 39 ms, post-processing about 2 ms.
-- CPU: whole system 25 to 29 %; aid-core 11 to 26 %. RAM: aid-core RSS 8.6 MB, free about 28 MB (4 MB less after `mlockall`). SoC 62 to 66 C.
+- CPU: aid-core about 11.4 % of the single core in steady state (about 25 % in the first minute); the `/proc/stat` whole-system figure reads 5 to 7 % and is not trusted (it under-counts bursty load on this kernel: it came out lower than aid-core's own process time). RAM: aid-core RSS 8.6 MB, free about 28 MB (4 MB less after `mlockall`). SoC 62 to 66 C.
 - Cold boot to dashboard answering: 26 s (reboot command to `/health` OK). Crash (`kill -9`) to dashboard back: 12 s.
 - Snapshot: 7 to 10 ms inside the program, 11 ms over the LAN (70 KB).
 - Not measured: accuracy, multi-viewer load, hours-long stability, the NPU's own utilisation, power draw.

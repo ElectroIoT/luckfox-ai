@@ -60,7 +60,7 @@ const Pages = (() => {
           el("div", { class: "hint", text: "Objects confirmed by the event engine (after the confirmation frames)." }));
         const t = st.system.soc_temp_c;
         sys.replaceChildren(
-          metric("CPU", fmt(st.system.cpu_system_pct, 0) + " %", st.system.cpu_system_pct, 70, 90),
+          metric("Camera program CPU", fmt(st.system.cpu_process_pct, 0) + " %", st.system.cpu_process_pct, 50, 80),
           metric("Memory used", fmt(st.system.mem_total_mb - st.system.mem_available_mb, 0) + " of " + fmt(st.system.mem_total_mb, 0) + " MB", 100 - 100 * st.system.mem_available_mb / st.system.mem_total_mb, 70, 90),
           metric("SoC temperature", fmt(t) + " C", t, 65, 80));
         net.replaceChildren(kv([["Address", st.system.ip || "-"], ["RTSP", el("span", { class: "mono", text: "rtsp://" + (st.system.ip || "<ip>") + ":" + st.stream.rtsp_port + st.stream.rtsp_path })],
@@ -311,7 +311,7 @@ const Pages = (() => {
       ["Address", s.ip || "-"], ["Uptime", fmtDuration(s.uptime_s)]]))).catch(() => {});
     root.append(el("div", { class: "topbar" }, el("h1", { text: "System" })),
       el("div", { class: "grid cols-2" },
-        el("div", { class: "card" }, el("h2", { text: "Load" }), metrics, chart, el("div", { class: "hint", text: "Blue: CPU %. Orange: SoC temperature (C). Last 60 samples, 2 s apart." })),
+        el("div", { class: "card" }, el("h2", { text: "Load" }), metrics, chart, el("div", { class: "hint", text: "Blue: whole-system CPU % (approximate). Orange: SoC temperature (C). Last 60 samples, 2 s apart." })),
         el("div", { class: "card" }, el("h2", { text: "Board" }), info,
           el("div", { class: "row" },
             el("button", { class: "btn", text: "Restart service", onclick: () => act("restart_service", "Restart aid-core? The camera stream stops for a few seconds.") }),
@@ -325,8 +325,8 @@ const Pages = (() => {
         cpuHist.push(Math.max(0, st.system.cpu_system_pct)); tempHist.push(Math.max(0, st.system.soc_temp_c));
         if (cpuHist.length > 60) { cpuHist.shift(); tempHist.shift(); }
         draw();
-        metrics.replaceChildren(metric("CPU (whole system)", fmt(st.system.cpu_system_pct, 0) + " %", st.system.cpu_system_pct, 70, 90),
-          metric("aid-core CPU", fmt(st.system.cpu_process_pct, 0) + " %", st.system.cpu_process_pct, 50, 80),
+        metrics.replaceChildren(metric("aid-core CPU (of one core)", fmt(st.system.cpu_process_pct, 0) + " %", st.system.cpu_process_pct, 50, 80),
+          metric("Whole system CPU (approximate, reads low)", fmt(st.system.cpu_system_pct, 0) + " %", st.system.cpu_system_pct, 70, 90),
           metric("Memory used", fmt(st.system.mem_total_mb - st.system.mem_available_mb, 0) + " of " + fmt(st.system.mem_total_mb, 0) + " MB", 100 - 100 * st.system.mem_available_mb / st.system.mem_total_mb, 70, 90),
           metric("aid-core memory", fmt(st.system.process_rss_mb) + " MB", 100 * st.system.process_rss_mb / st.system.mem_total_mb, 40, 60),
           metric("SoC temperature", fmt(st.system.soc_temp_c) + " C", st.system.soc_temp_c, 65, 80));

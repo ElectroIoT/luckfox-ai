@@ -54,6 +54,6 @@ main loop (100 ms tick), RTSP/encoder reader, detection service, HTTP accept + u
 
 ## Resource budget (measured, one board, one scene)
 - RAM: aid-core RSS 8.6 MB; free RAM about 28 MB; the 66 MB CMA pool for video buffers is fully used by the media pipeline.
-- CPU: 25 to 29 % of the whole system with video + detection every 500 ms + one RTSP viewer; aid-core itself 11 to 26 %.
+- CPU, steady state (9-minute soak, video + detection every 500 ms): aid-core uses about **11.4 % of the single core** (per-process counters, the reliable figure). The whole-system figure from `/proc/stat` reads only 5 to 7 % and under-counts bursty work on this kernel (it came out lower than aid-core's own time), so it is shown as "approximate". During the first minute after start-up (model loading) aid-core used about 25 %.
 - Temperature: 62 to 66 C at the SoC sensor. The chip's limit was not looked up.
 - Flash: program 0.5 MB, model 7.6 MB, dashboard about 100 KB in `/root/aid`; nothing written at run time.
