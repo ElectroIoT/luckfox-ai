@@ -93,7 +93,8 @@ std::string firstLine(const std::string& path) {
     std::ifstream f(path.c_str());
     std::string s;
     if (f) std::getline(f, s);
-    while (!s.empty() && (s[s.size() - 1] == '\r' || s[s.size() - 1] == '\n')) s.erase(s.size() - 1);
+    // /proc/device-tree/model ends with a NUL byte; also drop the line ending
+    while (!s.empty() && (s[s.size() - 1] == '\r' || s[s.size() - 1] == '\n' || s[s.size() - 1] == '\0')) s.erase(s.size() - 1);
     return s;
 }
 

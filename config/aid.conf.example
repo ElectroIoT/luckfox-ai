@@ -1,7 +1,9 @@
-# aid-core configuration. Copy to /root/aid/aid.conf ON THE BOARD and edit there.
-# Never commit the real file: it holds the HTTP token. Lines are key=value, '#' starts a comment.
+# aid-core configuration. Normally written for you by scripts/install.sh and the dashboard's
+# Settings page. Copy to /root/aid/aid.conf ON THE BOARD only: the real file holds secrets
+# (access token, MQTT password) and must never be committed.
+# Lines are key=value; '#' starts a comment. Wrong values are refused with a message, never guessed.
 
-# --- video (width <= 2304, height <= 1296 for the SC3336 sensor)
+# ---- video (the SC3336 sensor: width <= 2304, height <= 1296)
 width=1920
 height=1080
 fps=30
@@ -10,26 +12,67 @@ gop=60
 jpeg_quality=80
 iq_dir=/etc/iqfiles
 
-# --- image controls, 0..255; -1 (or leave out) keeps the ISP's own value
+# ---- image controls, 0..255. -1 (or leave out) keeps the camera's own value.
 #brightness=128
 #contrast=128
 #saturation=128
 #sharpness=50
 
-# --- network
+# ---- network
 rtsp_port=554
 rtsp_path=/live/0
 http_port=8080
 
-# --- HTTP access token (at least 16 characters). With no token the HTTP server listens on
-# 127.0.0.1 only. With a token it listens on the network and every request must send
-#   Authorization: Bearer <token>     or     ?token=<token>
-# Generate one on your PC, for example:  openssl rand -hex 16
+# ---- access token for scripts (Home Assistant, curl): GET /snapshot.jpg and /status.json.
+# At least 16 characters. Send it as "Authorization: Bearer <token>" or "?token=<token>".
+# Generate one on your PC with:  openssl rand -hex 16
+# The dashboard itself uses the login (user admin, password set with: aid-core --set-password).
 http_token=
 
-# --- storage. Events and pictures go to RAM (/tmp) by default; history is lost at reboot.
+# ---- storage. Events and pictures go to RAM (/tmp) by default; the history is lost at reboot.
 # The board's SPI flash showed controller errors during testing, so the program avoids writing to it.
-# For lasting history use a microSD card, e.g. data_dir=/mnt/sdcard/aid
+# For lasting history use a microSD card (not tested yet), e.g. data_dir=/mnt/sdcard/aid
 #data_dir=/tmp/aid-data
-#snapshots_keep=20
 #events_keep=300
+#snapshots_keep=20
+#web_dir=/root/aid/web
+#auth_file=/root/aid/auth.json
+
+# ---- AI detection (YOLOv5 on the NPU)
+detect_enabled=1
+detect_interval_ms=500
+detect_conf_pct=45
+detect_classes=person,car,motorcycle,bicycle,bus,truck,dog,cat
+#model_path=/root/aid/model/yolov5.rknn
+#labels_path=/root/aid/model/coco_80_labels_list.txt
+# Detection zones: x1,y1,x2,y2 in 0..1 of the picture (0,0 = top left). One line per zone, up to 8.
+# Without any zone the whole picture is watched. An object counts when its centre is inside a zone.
+#zone=0.1,0.2,0.9,0.95
+
+# ---- events
+event_cooldown_s=30
+event_absent_s=10
+event_enter_frames=2
+motion_enabled=1
+motion_threshold_pct=3
+
+# ---- MQTT / Home Assistant (no encryption: home network only)
+mqtt_enabled=0
+#mqtt_host=192.168.1.5
+#mqtt_port=1883
+#mqtt_user=ha
+#mqtt_password=
+#mqtt_prefix=luckfox-ai
+#mqtt_device_name=Luckfox AI Camera
+#mqtt_discovery_prefix=homeassistant
+
+# ---- GPIO (off by default). Pin = Linux sysfs number = bank*32 + group*8 + x (A=0,B=1,C=2,D=3).
+# Check the board's pinout and /sys/kernel/debug/gpio first: the camera, Ethernet and USB use some pins.
+# gpio=name,role,pin,active_low     role: relay | buzzer | led | alarm (outputs), pir | door (inputs)
+#gpio_enabled=1
+#gpio=relay1,relay,41,0
+#gpio=pir,pir,42,0
+
+# ---- security
+session_idle_min=15
+session_max_hours=8

@@ -27,3 +27,20 @@ Powered from a separate adapter, `aid-core` ran for several minutes with **0 fla
 - Snapshot: 3 ms total inside the program (frame wait 0.05 to 7 ms, JPEG 3 to 12 ms). **Bug found and fixed:** the "drop stale frame" call used timeout 0, which on this library waits about 2 s, so every snapshot after the first took 2.0 s. After the fix, six snapshots in a row took 19 to 73 ms each over the network (1920x1080, about 73 KB each).
 - Not verified: the `keyframes` counter reads 1 after 700+ frames although `gop=60`; VLC joined mid-stream and played, so keyframes do occur, and the counter is probably wrong (to be checked).
 
+
+## Flash controller incidents: full account and what the software does about them `[MEASURED]` 2026-10-30
+**Three real incidents** (each: `rockchip-sfc ffac0000.spi: DMA wait for transfer finish timeout`, `xfer data failed ret -110`, `ubi0 error -5`, UBIFS root read-only, commands failing with "Input/output error"; every time a restart fixed it and the error count was 0 afterwards, so the flash cells were not damaged):
+1. After 8 quick camera open/close cycles (powered from a PC USB port).
+2. Right after copying `aid-core` to the flash and starting the camera program (the first start also failed on an unrelated bind error).
+3. While copying files to the flash, about 20 s after `aid-core` had been stopped, following 45 minutes of clean streaming.
+Logs: `diag_dmesg_flash_error_2026-10-30.txt`, `..._error2_...`, `..._error3_...`. One more reading of "read-only, 38 errors" was taken while the board was shutting down for a reboot (a normal read-only remount) and is not counted.
+
+What is known: errors appear when the flash is read or written around the time the video pipeline starts, runs or stops; a 45-minute run with no file access at all was clean; after moving from USB power to a 5 V adapter the incidents did not stop (incident 3 happened with the adapter).
+What is **not** known: the cause. Candidates: power dips, DDR/bus contention between the media blocks and the flash controller, a marginal flash chip or board.
+
+What the software does (all in the final version; none of it proves the cause):
+- no flash I/O in steady state: events and pictures go to RAM (`/tmp`), the dashboard files are read into RAM at start, the supervisor is a compiled program that starts no helper processes, `aid-core` and the supervisor lock their pages in RAM (`mlockall`), system strings are read once at start;
+- the installer and the deploy script write to the flash only while the board is idle and refuse to start if the log already shows flash errors;
+- the supervisor reboots the board with the `reboot` system call if `/` becomes read-only (after 5 minutes of uptime, so it cannot loop at boot);
+- the supervisor falls back to the stock app after 5 quick failures.
+Recommended for you: a good 5 V / 2 A adapter, no flash-heavy work while the camera runs, and a microSD card for lasting history (untested).

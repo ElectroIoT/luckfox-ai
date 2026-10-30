@@ -198,3 +198,12 @@ Findings:
 ### Phase 3 camera service and a flash incident – see `docs/camera.md`
 - Our own `aid-camera` tool ran on the board: 30.02 fps measured at the camera input (1920x1080), JPEG snapshot via the hardware encoder in 4.05 ms (one run each).
 - **Incident `[MEASURED]`:** after a burst of 8 camera open/close cycles the root filesystem went read-only (SPI flash controller DMA timeouts, `error -5` reads, UBIFS read-only). A restart restored it (flash error count 0 afterwards). Cause unknown; log saved in `docs/diag_dmesg_flash_error_2026-10-30.txt`. `sysrq` is not available in this kernel; `/bin/busybox reboot` works when applet symlinks are unreadable.
+
+## 9. Final software on the board `[MEASURED]` 2026-10-30
+(`aid-core` 1.0.0-rc1 + supervisor; numbers from the program's own `status.json` and `/proc`; single runs, one scene, one viewer.)
+- Encoder 28.5 to 30 fps at 1920x1080, about 2 Mbit/s, capture-to-encoded latency 44.6 ms, key frame every 60 frames (counter verified: 9 in 504 frames after the counter fix).
+- NPU inference 88.9 ms average (600+ runs), picture preparation 34 to 39 ms, post-processing about 2 ms.
+- CPU: whole system 25 to 29 %; aid-core 11 to 26 %. RAM: aid-core RSS 8.6 MB, free about 28 MB (4 MB less after `mlockall`). SoC 62 to 66 C.
+- Cold boot to dashboard answering: 26 s (reboot command to `/health` OK). Crash (`kill -9`) to dashboard back: 12 s.
+- Snapshot: 7 to 10 ms inside the program, 11 ms over the LAN (70 KB).
+- Not measured: accuracy, multi-viewer load, hours-long stability, the NPU's own utilisation, power draw.

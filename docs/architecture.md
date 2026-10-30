@@ -1,44 +1,59 @@
-# Architecture proposal (draft for approval)
+# Architecture (as built)
 
-Status 2026-10-30. Everything here is a plan unless marked `[MEASURED]`. Nothing in this file is implemented yet.
+One camera appliance process on a 128 MB board, started and watched by a very small supervisor.
 
-## Decision: write our own small daemon, do not extend `rkipc`
+```
+ boot -> S21appinit (stock rkipc) -> S99aid -> aid-supervisor --stops rkipc--> aid-core
+                                                  |  restarts on exit/hang, reboots if / is read-only
+ aid-core
+   Camera (ISP + VI)  --hardware bind-->  H.264 encoder ---> RTSP server (port 554)
+        |  one frame at a time (frame lock)
+        +--> JPEG encoder (snapshots)
+        +--> DetectionService thread: NV12 -> RGB letterbox (CPU) -> NPU (YOLOv5) -> boxes
+                 +--> MotionDetector (80x45 luma grid)
+                 +--> EventEngine (confirm, zones, cooldown) --> EventStore (RAM, JSON lines + JPEGs)
+                                                               +--> MQTT publisher (Home Assistant)
+   HttpServer (port 8080, 1 thread per connection, max 6) --> Api: login/sessions, settings, events,
+                 logs, system actions, static dashboard files (held in RAM)
+   Gpio (optional), MqttClient (optional), 1 s housekeeping loop (heartbeat file, stats, MQTT states)
+```
 
-| | Extend stock `rkipc` | Own daemon built from the Luckfox example |
-|---|---|---|
-| Size of code to understand | ≈ 208 000 lines of C/C++ in `project/app/rkipc` (includes bundled code) `[MEASURED]` | ≈ 1 100 lines in `example/luckfox_pico_rtsp_yolov5` `[MEASURED]` |
-| Already works on this board | yes: RTSP, ISP tuning, JPEG, motion `[TESTED ON HARDWARE]` | yes: camera + NPU + H.264 + RTSP ran `[TESTED ON HARDWARE]` |
-| Adding detection thread, zones, events, MQTT | invasive changes in a big code base (unverified: I have not read its internals) | designed in from the start |
-| RAM | `rkipc` ≈ 29 MB available with it running `[MEASURED]` | similar; demo process RSS 11.2 MB `[MEASURED]` |
-| Risk | hard to maintain, upstream changes | we must rebuild small features ourselves (snapshots, exposure settings, config) |
+## Decisions (and why)
+| Decision | Reason |
+|---|---|
+| Own program, not an extension of the stock `rkipc` | `rkipc` is about 208 000 lines; the example we started from is about 1 100. Measured: our whole program adds about 8.6 MB RSS. |
+| Single process, threads | 128 MB RAM (about 54 MB visible to Linux, about 28 MB free with everything running). A second process would cost several MB and gain little. The earlier plan (separate web process) was dropped for this reason. |
+| Video path in hardware | VI is bound to the H.264 encoder; the CPU only hands encoded packets to the RTSP library. A second hardware bind of one VI channel is refused by RKMPI (error `0xa0028008`), so snapshots and detection pull single frames instead. |
+| CPU picture preparation for the NPU | Simple and measurable (34 to 39 ms). The RGA 2D engine would probably be faster; not tried. |
+| JSON lines + RAM instead of SQLite | A few hundred events; flash is small and showed controller errors; a bounded text file is easier to reason about. History is lost at reboot unless `data_dir` is a microSD card. |
+| Dashboard files held in RAM, code pages locked (`mlockall`) | Reading the flash while the camera runs may be what triggers its controller timeouts (see `streaming.md`); the program avoids flash I/O in steady state. |
+| Compiled supervisor | A shell loop starts processes from the flash every few seconds; the C++ supervisor does not. It also reboots the board with the `reboot` system call if `/` turns read-only. |
+| No external libraries | MQTT, HTTP, SHA-256/PBKDF2 and JSON helpers are small and unit tested; there is no package manager on the board. |
+| GPIO disabled by default | The pinout could not be verified from here; the module never picks a pin. |
 
-Recommendation: **own daemon** (`luckfox-aid`). Keep `rkipc` as the fallback: the board boots it unless we deliberately replace it, and a reboot restores it.
+## Code layout
+| Folder | Content |
+|---|---|
+| `src/camera` | `Camera` (ISP via rkaiq, VI), `aid-camera` tool, `FrameView` |
+| `src/streaming` | `Streamer`: H.264 encoder, RTSP, JPEG snapshots, frame access, statistics |
+| `src/ai` | `Detector` (RKNN), `preprocess`, `motion`, `DetectionService`; `third_party/rockchip` (Apache-2.0) |
+| `src/events` | `EventEngine` (pure rules), `EventStore` |
+| `src/webserver` | `HttpServer`, `Api`, `AuthManager`, `StaticCache` |
+| `src/mqtt` | `MqttClient`, Home Assistant discovery |
+| `src/gpio` | `Gpio` (sysfs) |
+| `src/system` | config, JSON helpers, log ring buffer, system information |
+| `src/core` | `aid_core.cc` (wires everything), `aid_supervisor.cc` |
+| `web` | dashboard (HTML, CSS, JavaScript; no framework) |
+| `services` | `S99aid` boot script |
+| `scripts` | build, test, deploy, install, uninstall, backup, restore, demo, probe |
+| `tests` | PC-side tests (546 checks) |
+| `docs` | this documentation and the measured evidence (`hardware.md`, logs in `diag_*.txt`) |
 
-## Proposed process layout (2 processes, to fit ~29 MB of free RAM)
-1. `aid-core` (C++): camera (RKMPI VI) → frame path → NPU detection → event engine → H.264 + JPEG encode → RTSP/HTTP snapshot → MQTT client → GPIO. One process, a few threads, no heavy frameworks.
-2. `aid-web` (C or C++, tiny HTTP server): serves the dashboard files, login, REST/JSON API, talks to `aid-core` over a local socket. Kept separate so a web crash never stops the camera.
+## Threads in `aid-core`
+main loop (100 ms tick), RTSP/encoder reader, detection service, HTTP accept + up to 6 connection threads, MQTT client (if enabled), plus the Rockchip libraries' own threads (ISP, MPP, rockit). 15 threads were counted on the board with one viewer.
 
-Storage: config in a small JSON file on flash; snapshots and event database on microSD (not yet tested; flash is wear-limited and small). Database choice (SQLite vs JSON lines) is decided after measuring RAM and the SD card.
-
-## Pipeline changes versus the example (all to be verified by measurement)
-- The example converts NV12→BGR, resizes and letterboxes on the CPU with OpenCV. The board has an RGA 2D engine (`librga` is present on it). Plan: try RGA for convert/resize, compare CPU load before/after.
-- Run inference at a configurable interval (the example runs it on every frame) and put timing around it, so inference latency and FPS are measured, not guessed.
-- Stream the clean video and send overlays/boxes as data to the dashboard, or draw them only for the live view; decide after seeing the CPU cost.
-
-## Start-up and recovery
-- Replace `rkipc` at boot only after backing up `/oem/usr/bin/RkLunch.sh` and the `S21appinit` hook.
-- The example kills `rkipc` and the USB `udhcpc` (which holds the old RTSP socket) before starting; our init script must do the same. `[TESTED ON HARDWARE]`
-- No hardware watchdog device was found `[MEASURED]`; recovery will be a software supervisor plus reboot-on-repeated-failure, to be designed and tested.
-
-## Known open questions
-1. Safe operating temperature of the RV1106 (chip reached 71.9 °C with the demo running `[MEASURED]`); needs the datasheet value.
-2. Real FPS and inference latency (not measured yet).
-3. Which model: the example ships a `yolov5.rknn`; we still must convert our own with RKNN-Toolkit2 1.6.0 (runtime on board is 1.6.0) and compare accuracy/speed of yolov5n / yolov5s_relu / yolo11n.
-4. microSD behaviour on this board.
-5. Security hardening (telnet, adb, default root password) is scheduled for the security phase but should be done before exposing the board outside the home network.
-
-## Next implementation steps
-1. Create the project skeleton in `D:\My Project\luckfox-ai` (folders from the brief) with a CMake build against the SDK toolchain.
-2. Phase 3: camera service (frame grab, JPEG snapshot, status) — first version of `aid-core` without AI.
-3. Phase 4: RTSP stream and HTTP snapshot from `aid-core`; timing/FPS instrumentation.
-4. Phase 5: install RKNN-Toolkit2 1.6.0 in WSL, convert/benchmark models on the board.
+## Resource budget (measured, one board, one scene)
+- RAM: aid-core RSS 8.6 MB; free RAM about 28 MB; the 66 MB CMA pool for video buffers is fully used by the media pipeline.
+- CPU: 25 to 29 % of the whole system with video + detection every 500 ms + one RTSP viewer; aid-core itself 11 to 26 %.
+- Temperature: 62 to 66 C at the SoC sensor. The chip's limit was not looked up.
+- Flash: program 0.5 MB, model 7.6 MB, dashboard about 100 KB in `/root/aid`; nothing written at run time.
