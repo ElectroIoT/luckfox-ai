@@ -22,6 +22,6 @@ mkdir -p "$BUILD_DIR" "$ROOT/build"
 cd "$BUILD_DIR"
 cmake "$ROOT" -DCMAKE_BUILD_TYPE=Release
 make -j"$(nproc)"
-cp -f aid-camera "$ROOT/build/"
-file "$ROOT/build/aid-camera" | cut -c1-200
+cp -f aid-camera aid-core "$ROOT/build/"
+file "$ROOT/build/aid-core" | cut -c1-200
 ls -l "$ROOT/build/"

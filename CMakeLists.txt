@@ -41,11 +41,26 @@ set(RK_INCLUDES
 
 set(RK_LIBS rockiva sample_comm rockit rockchip_mpp rkaiq rga pthread)
 
+# ---- modules (one static library each)
+add_library(aid_system STATIC src/system/config.cc src/system/sysinfo.cc)
+target_include_directories(aid_system PUBLIC src/system)
+
 add_library(aid_camera STATIC src/camera/camera.cc)
 target_include_directories(aid_camera PUBLIC src/camera ${RK_INCLUDES})
 target_link_libraries(aid_camera PUBLIC ${RK_LIBS})
 
+add_library(aid_streaming STATIC src/streaming/streamer.cc)
+target_include_directories(aid_streaming PUBLIC src/streaming ${RK_INCLUDES})
+target_link_libraries(aid_streaming PUBLIC aid_camera rtsp)
+
+add_library(aid_webserver STATIC src/webserver/http_server.cc)
+target_include_directories(aid_webserver PUBLIC src/webserver)
+
+# ---- programs
 add_executable(aid-camera src/camera/aid_camera_cli.cc)
 target_link_libraries(aid-camera PRIVATE aid_camera)
 
-install(TARGETS aid-camera DESTINATION bin)
+add_executable(aid-core src/core/aid_core.cc)
+target_link_libraries(aid-core PRIVATE aid_system aid_camera aid_streaming aid_webserver)
+
+install(TARGETS aid-camera aid-core DESTINATION bin)

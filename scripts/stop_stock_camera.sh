@@ -11,6 +11,9 @@ while ps | grep -q '[r]kipc -a'; do
     fi
     sleep 1
 done
-# rkipc's RTSP socket (port 554) can stay open inside the USB-network udhcpc; only needed
-# when our own RTSP server starts (Phase 4), so it is not touched here.
+# rkipc's RTSP listening socket (port 554) is inherited by the USB-network DHCP client
+# (udhcpc -i usb0) and stays open after rkipc exits, which would block our own RTSP server.
+# Rockchip's RkLunch-stop.sh kills udhcpc for the same reason. The USB link keeps its fixed
+# address; only its DHCP client goes away until the next boot.
+killall udhcpc 2>/dev/null
 echo "rkipc stopped"

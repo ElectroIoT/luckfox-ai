@@ -24,6 +24,11 @@ struct CameraConfig {
     int fps = 0;                      // 0 = leave the sensor/ISP default
     std::string iqDir = "/etc/iqfiles";  // ISP tuning files
     ImageControls controls;           // applied right after the ISP starts
+    // 2: frames can be pulled with measureFps()/snapshotJpeg() (tool mode).
+    // 1: a hardware encoder is bound to the channel and we may also pull one frame at a time
+    //    (must be smaller than the VI buffer count, which is 2). Used by aid-core.
+    // 0: hardware-bound mode only, no frame pulling.
+    int viDepth = 2;
 };
 
 struct CameraStats {
@@ -54,6 +59,10 @@ public:
     void close();
     bool isOpen() const;
 
+    // VI device/channel ids used by this camera (for binding encoders to it).
+    int viDev() const;
+    int viChn() const;
+
     // Changes image controls while running. Returns false and sets *err on the first failure.
     bool setControls(const ImageControls& c, std::string* err);
 
@@ -70,6 +79,9 @@ public:
     // Read-only status; does NOT open the camera, so it works while rkipc runs.
     // Sensor name and device nodes are discovered from sysfs, never assumed.
     static std::string probeStatusJson();
+
+    // Sensor name from sysfs (for example "m00_b_sc3336 4-0030"), "" if none is found.
+    static std::string detectSensorName();
 
 private:
     struct Impl;

@@ -68,7 +68,7 @@ bool viDevInit(std::string* err) {
     return true;
 }
 
-bool viChnInit(int width, int height, std::string* err) {
+bool viChnInit(int width, int height, int depth, std::string* err) {
     VI_CHN_ATTR_S attr;
     memset(&attr, 0, sizeof(attr));
     attr.stIspOpt.u32BufCount = 2;
@@ -77,7 +77,8 @@ bool viChnInit(int width, int height, std::string* err) {
     attr.stSize.u32Height = height;
     attr.enPixelFormat = RK_FMT_YUV420SP;
     attr.enCompressMode = COMPRESS_MODE_NONE;
-    attr.u32Depth = 2;  // lets us fetch frames with RK_MPI_VI_GetChnFrame
+    // 2 lets us fetch frames with RK_MPI_VI_GetChnFrame; 0 is required when encoders are bound
+    attr.u32Depth = (RK_U32)depth;
     int ret = RK_MPI_VI_SetChnAttr(kViDev, kViChn, &attr);
     if (ret != RK_SUCCESS) {
         *err = "RK_MPI_VI_SetChnAttr " + hex(ret);
@@ -142,6 +143,8 @@ struct Camera::Impl {
 Camera::Camera() : impl_(new Impl) {}
 Camera::~Camera() { close(); }
 bool Camera::isOpen() const { return impl_->open; }
+int Camera::viDev() const { return kViDev; }
+int Camera::viChn() const { return kViChn; }
 
 bool Camera::open(const CameraConfig& cfg, std::string* err) {
     std::string dummy;
@@ -204,7 +207,7 @@ bool Camera::open(const CameraConfig& cfg, std::string* err) {
 
     if (!viDevInit(err)) { close(); return false; }
     impl_->viDevUp = true;
-    if (!viChnInit(cfg.width, cfg.height, err)) { close(); return false; }
+    if (!viChnInit(cfg.width, cfg.height, cfg.viDepth, err)) { close(); return false; }
     impl_->viChnUp = true;
 
     impl_->open = true;
@@ -282,6 +285,7 @@ bool Camera::measureFps(double seconds, CameraStats* out, std::string* err) {
     std::string dummy;
     if (!err) err = &dummy;
     if (!impl_->open) { *err = "camera not open"; return false; }
+    if (impl_->cfg.viDepth < 1) { *err = "camera is in bound mode (viDepth 0): frames cannot be pulled"; return false; }
 
     CameraStats st;
     st.width = impl_->cfg.width;
@@ -315,6 +319,7 @@ bool Camera::snapshotJpeg(const std::string& path, int quality, SnapshotInfo* ou
     std::string dummy;
     if (!err) err = &dummy;
     if (!impl_->open) { *err = "camera not open"; return false; }
+    if (impl_->cfg.viDepth < 1) { *err = "camera is in bound mode (viDepth 0): use the streamer snapshot"; return false; }
     const int w = impl_->cfg.width, h = impl_->cfg.height;
 
     if (!impl_->jpegUp) {
@@ -403,6 +408,19 @@ bool Camera::snapshotJpeg(const std::string& path, int quality, SnapshotInfo* ou
     }
     RK_MPI_VI_ReleaseChnFrame(kViDev, kViChn, &frame);
     return ok;
+}
+
+std::string Camera::detectSensorName() {
+    std::string sensor;
+    if (DIR* d = opendir("/sys/class/video4linux")) {
+        while (struct dirent* e = readdir(d)) {
+            if (e->d_name[0] == '.') continue;
+            std::string n = readFirstLine(std::string("/sys/class/video4linux/") + e->d_name + "/name");
+            if (n.size() > 3 && n[0] == 'm' && n[1] >= '0' && n[1] <= '9' && n[3] == '_') sensor = n;
+        }
+        closedir(d);
+    }
+    return sensor;
 }
 
 std::string Camera::probeStatusJson() {
