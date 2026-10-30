@@ -54,6 +54,7 @@ private:
 
     AuthManager* auth_;
     EventStore* events_;
+    StaticCache webCache_;
     std::string webDir_, token_;
     int maxHours_;
     ApiBackend be_;

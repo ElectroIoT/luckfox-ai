@@ -7,6 +7,7 @@
 // Stop the stock rkipc first (scripts/stop_stock_camera.sh); it owns the camera.
 // Exit codes: 0 = stopped on request, 1 = start-up failure, 2 = bad usage/config, 3 = restart requested.
 #include <signal.h>
+#include <sys/mman.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
@@ -40,6 +41,10 @@
 #include "sysinfo.h"
 
 namespace {
+
+#ifndef MCL_ONFAULT
+#define MCL_ONFAULT 4
+#endif
 
 constexpr const char* kVersion = "1.0.0-rc1";
 volatile sig_atomic_t g_quit = 0;
@@ -354,15 +359,18 @@ int main(int argc, char** argv) {
         g_quit = 1;
         return true;
     };
+    // These come from files on the flash: read them once now, never while the camera is running.
+    const std::string sysHostname = aid::firstLine("/etc/hostname"), sysBoard = aid::firstLine("/proc/device-tree/model"),
+                      sysKernel = aid::firstLine("/proc/version"), sysOs = aid::keyValueFromFile("/etc/os-release", "PRETTY_NAME");
     be.systemInfoJson = [&]() -> std::string {
         double rt = 0, rf = 0, dt = 0, df = 0;
         const bool r = aid::diskUsageMB("/", &rt, &rf), d = aid::diskUsageMB(cfgCopy().dataDir, &dt, &df);
         std::ostringstream o;
         o.setf(std::ios::fixed);
         o.precision(1);
-        o << "{\"aid_version\":" << q(kVersion) << ",\"hostname\":" << q(aid::firstLine("/etc/hostname"))
-          << ",\"board\":" << q(aid::firstLine("/proc/device-tree/model")) << ",\"kernel\":" << q(aid::firstLine("/proc/version"))
-          << ",\"os\":" << q(aid::keyValueFromFile("/etc/os-release", "PRETTY_NAME")) << ",\"ip\":" << q(aid::localIpv4())
+        o << "{\"aid_version\":" << q(kVersion) << ",\"hostname\":" << q(sysHostname)
+          << ",\"board\":" << q(sysBoard) << ",\"kernel\":" << q(sysKernel)
+          << ",\"os\":" << q(sysOs) << ",\"ip\":" << q(aid::localIpv4())
           << ",\"uptime_s\":" << aid::systemUptimeSeconds() << ",\"mem_total_mb\":" << aid::memTotalMB()
           << ",\"root_total_mb\":" << (r ? rt : -1) << ",\"root_free_mb\":" << (r ? rf : -1)
           << ",\"data_total_mb\":" << (d ? dt : -1) << ",\"data_free_mb\":" << (d ? df : -1)
@@ -400,6 +408,11 @@ int main(int argc, char** argv) {
     aid::logInfo(std::string("aid-core ") + kVersion + " running: " + std::to_string(cfg.width) + "x" + std::to_string(cfg.height) +
                  " @ " + std::to_string(cfg.fps) + " fps, rtsp port " + std::to_string(cfg.rtspPort) + cfg.rtspPath +
                  (httpOk ? ", web port " + std::to_string(cfg.httpPort) + (http.isLocalOnly() ? " (localhost only)" : "") : ""));
+
+    // Keep the program's code and library pages in RAM, so the kernel never has to read them back from
+    // the fragile SPI flash while the camera runs (see docs/streaming.md). ONFAULT = lock what is
+    // resident now and whatever is touched later, without pulling in whole libraries.
+    if (mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT) != 0) aid::logWarn("mlockall failed: code pages may be re-read from flash");
 
     // ---- main loop: 100 ms tick
     int tick = 0;

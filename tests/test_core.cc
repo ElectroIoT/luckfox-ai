@@ -135,8 +135,19 @@ static void testStaticFiles() {
     CHECK(!aid::serveStaticFile(dir, "/%2e%2e/x.txt", &r));
     CHECK(!aid::serveStaticFile(dir, "/js", &r));
     CHECK(!aid::serveStaticFile(dir, "index.html", &r));
+
+    // The RAM cache serves the same files without touching the disk again.
+    aid::StaticCache cache;
+    CHECK(cache.load(dir) == 3);                                   // index.html, style.css, js/app.js (not hidden/unknown/big)
+    CHECK(cache.bytes() == 15 + 6 + 8);
     std::string cmd = "rm -rf " + dir + " " + outside;
-    CHECK(system(cmd.c_str()) == 0);
+    CHECK(system(cmd.c_str()) == 0);                               // delete everything from disk
+    CHECK(cache.serve("/", &r) && r.contentType.find("text/html") == 0 && r.body.size() == 15);
+    CHECK(cache.serve("/style.css", &r) && cache.serve("/js/app.js", &r));
+    CHECK(!cache.serve("/.secret.txt", &r) && !cache.serve("/big.txt", &r) && !cache.serve("/notes.exe", &r));
+    CHECK(!cache.serve("/../x.html", &r) && !cache.serve("/js//app.js", &r) && !cache.serve("/missing.html", &r));
+    aid::StaticCache empty;
+    CHECK(empty.load("/nonexistent-dir-xyz") == 0 && !empty.serve("/", &r));
 }
 
 // Talks to a real HttpServer over a local socket.

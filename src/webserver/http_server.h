@@ -45,6 +45,21 @@ void setText(HttpResponse* r, int status, const std::string& text, const std::st
 // "/" means "/index.html". Returns false if the file is not served (the caller sends 404).
 bool serveStaticFile(const std::string& webDir, const std::string& urlPath, HttpResponse* resp);
 
+// The dashboard files held in RAM, so serving them never reads the (fragile) flash at run time.
+// Loads files of the types serveStaticFile knows, from the folder and one level of sub-folders.
+class StaticCache {
+public:
+    size_t load(const std::string& dir);   // returns the number of files loaded
+    bool serve(const std::string& urlPath, HttpResponse* resp) const;
+    size_t files() const { return files_.size(); }
+    size_t bytes() const { return bytes_; }
+
+private:
+    struct Entry { std::string type; std::vector<uint8_t> data; };
+    std::map<std::string, Entry> files_;
+    size_t bytes_ = 0;
+};
+
 class HttpServer {
 public:
     // Return true if the request was handled (the response starts as 200 OK with an empty body).

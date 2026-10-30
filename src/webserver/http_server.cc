@@ -10,6 +10,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include <dirent.h>
+
 #include <algorithm>
 #include <atomic>
 #include <cctype>
@@ -227,6 +229,95 @@ bool serveStaticFile(const std::string& webDir, const std::string& urlPath, Http
     resp->status = 200;
     resp->contentType = type;
     resp->body.assign(s.begin(), s.end());
+    return true;
+}
+
+namespace {
+
+// Content type for a static file name, "" if the extension is not served.
+std::string staticType(const std::string& name) {
+    const size_t dot = name.rfind('.');
+    if (dot == std::string::npos) return "";
+    const std::string ext = lower(name.substr(dot + 1));
+    if (ext == "html") return "text/html; charset=utf-8";
+    if (ext == "css") return "text/css; charset=utf-8";
+    if (ext == "js") return "application/javascript; charset=utf-8";
+    if (ext == "svg") return "image/svg+xml";
+    if (ext == "png") return "image/png";
+    if (ext == "ico") return "image/x-icon";
+    if (ext == "json") return "application/json";
+    if (ext == "txt") return "text/plain; charset=utf-8";
+    return "";
+}
+
+bool safeStaticPath(const std::string& p) {
+    if (p.size() < 2 || p.size() > 128 || p[0] != '/' || p.find("..") != std::string::npos) return false;
+    for (char c : p) {
+        const bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+                        c == '.' || c == '_' || c == '-' || c == '/';
+        if (!ok) return false;
+    }
+    return p.find("//") == std::string::npos && p.find("/.") == std::string::npos;
+}
+
+bool readSmallFile(const std::string& path, std::string* out) {
+    struct stat st;
+    if (stat(path.c_str(), &st) != 0 || !S_ISREG(st.st_mode) || st.st_size > 512 * 1024) return false;
+    std::ifstream f(path.c_str(), std::ios::binary);
+    if (!f) return false;
+    std::ostringstream all;
+    all << f.rdbuf();
+    *out = all.str();
+    return true;
+}
+
+}  // namespace
+
+size_t StaticCache::load(const std::string& dir) {
+    files_.clear();
+    bytes_ = 0;
+    std::vector<std::string> rels;
+    if (DIR* d = opendir(dir.c_str())) {
+        while (struct dirent* e = readdir(d)) {
+            const std::string n = e->d_name;
+            if (n.empty() || n[0] == '.') continue;
+            rels.push_back("/" + n);
+            const std::string sub = dir + "/" + n;
+            struct stat st;
+            if (stat(sub.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
+                if (DIR* d2 = opendir(sub.c_str())) {
+                    while (struct dirent* e2 = readdir(d2)) {
+                        const std::string n2 = e2->d_name;
+                        if (!n2.empty() && n2[0] != '.') rels.push_back("/" + n + "/" + n2);
+                    }
+                    closedir(d2);
+                }
+            }
+        }
+        closedir(d);
+    }
+    for (const std::string& rel : rels) {
+        const std::string type = staticType(rel);
+        std::string data;
+        if (type.empty() || !safeStaticPath(rel) || !readSmallFile(dir + rel, &data)) continue;
+        if (bytes_ + data.size() > 2 * 1024 * 1024) break;
+        Entry en;
+        en.type = type;
+        en.data.assign(data.begin(), data.end());
+        bytes_ += data.size();
+        files_[rel] = std::move(en);
+    }
+    return files_.size();
+}
+
+bool StaticCache::serve(const std::string& urlPath, HttpResponse* resp) const {
+    const std::string p = urlPath == "/" ? "/index.html" : urlPath;
+    if (!safeStaticPath(p)) return false;
+    auto it = files_.find(p);
+    if (it == files_.end()) return false;
+    resp->status = 200;
+    resp->contentType = it->second.type;
+    resp->body = it->second.data;
     return true;
 }
 

@@ -83,4 +83,6 @@ target_link_libraries(aid-camera PRIVATE aid_camera)
 add_executable(aid-core src/core/aid_core.cc)
 target_link_libraries(aid-core PRIVATE aid_system aid_camera aid_streaming aid_events aid_ai aid_webserver aid_mqtt aid_gpio)
 
-install(TARGETS aid-camera aid-core DESTINATION bin)
+add_executable(aid-supervisor src/core/aid_supervisor.cc)
+
+install(TARGETS aid-camera aid-core aid-supervisor DESTINATION bin)

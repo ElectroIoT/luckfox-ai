@@ -26,3 +26,10 @@ http_port=8080
 #   Authorization: Bearer <token>     or     ?token=<token>
 # Generate one on your PC, for example:  openssl rand -hex 16
 http_token=
+
+# --- storage. Events and pictures go to RAM (/tmp) by default; history is lost at reboot.
+# The board's SPI flash showed controller errors during testing, so the program avoids writing to it.
+# For lasting history use a microSD card, e.g. data_dir=/mnt/sdcard/aid
+#data_dir=/tmp/aid-data
+#snapshots_keep=20
+#events_keep=300

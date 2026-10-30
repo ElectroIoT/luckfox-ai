@@ -9,3 +9,5 @@ config/*.secret*
 config/local.json
 # camera captures are photos of the surroundings; keep them out of history
 docs/samples/
+# settings backups contain the access token and the password hash
+backups/

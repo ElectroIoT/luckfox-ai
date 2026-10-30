@@ -72,7 +72,9 @@ bool needsRestart(const Config& a, const Config& c) {
 Api::Api(AuthManager* auth, EventStore* events, const std::string& webDir, const std::string& machineToken,
          int sessionMaxHours, ApiBackend backend)
     : auth_(auth), events_(events), webDir_(webDir), token_(machineToken), maxHours_(sessionMaxHours),
-      be_(std::move(backend)) {}
+      be_(std::move(backend)) {
+    webCache_.load(webDir_);
+}
 
 void Api::json(HttpResponse* r, int status, const std::string& body) const {
     setText(r, status, body, "application/json");
@@ -177,7 +179,7 @@ bool Api::handle(const HttpRequest& req, HttpResponse* resp, int64_t nowMs) {
     }
 
     if (!isApi) {
-        if (req.method == "GET" && serveStaticFile(webDir_, req.path, resp)) return true;
+        if (req.method == "GET" && webCache_.serve(req.path, resp)) return true;
         return false;
     }
 

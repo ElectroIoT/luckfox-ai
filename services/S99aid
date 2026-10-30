@@ -1,0 +1,42 @@
+#!/bin/sh
+# /etc/init.d/S99aid: starts the aid-core supervisor at boot (after the stock S21appinit).
+#   S99aid start | stop | restart | status
+# Kill switch: if the file /root/aid/disabled exists, nothing is started at boot.
+# To get the stock camera app back permanently: touch /root/aid/disabled and reboot.
+AID=/root/aid
+PIDFILE=/tmp/aid-supervisor.pid
+
+running() { [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; }
+
+case "$1" in
+    start)
+        [ -x "$AID/aid-core" ] || exit 0
+        if [ -f "$AID/disabled" ]; then echo "aid: disabled by $AID/disabled"; exit 0; fi
+        if running; then echo "aid: already running"; exit 0; fi
+        rm -f /tmp/aid-stop
+        nohup "$AID/aid-supervisor" > /dev/null 2>&1 &
+        echo "aid: started"
+        ;;
+    stop)
+        touch /tmp/aid-stop
+        n=0
+        while running && [ "$n" -lt 20 ]; do sleep 1; n=$((n + 1)); done
+        running && kill "$(cat "$PIDFILE")" 2>/dev/null
+        killall aid-core 2>/dev/null
+        echo "aid: stopped"
+        ;;
+    restart)
+        "$0" stop
+        sleep 2
+        "$0" start
+        ;;
+    status)
+        if running; then echo "supervisor running (pid $(cat "$PIDFILE"))"; else echo "supervisor not running"; fi
+        pidof aid-core > /dev/null && echo "aid-core running (pid $(pidof aid-core))" || echo "aid-core not running"
+        ;;
+    *)
+        echo "usage: $0 {start|stop|restart|status}"
+        exit 1
+        ;;
+esac
+exit 0
