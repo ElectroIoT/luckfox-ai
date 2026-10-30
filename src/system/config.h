@@ -1,5 +1,5 @@
 // Runtime configuration for aid-core, read from a simple key=value file.
-// No secrets live in the repository: the HTTP token is only set in the file on the board.
+// No secrets live in the repository: tokens/passwords exist only in the file on the board.
 #pragma once
 
 #include <string>
@@ -7,8 +7,24 @@
 
 namespace aid {
 
+// Rectangle in normalized image coordinates (0..1), origin top-left.
+struct ZoneRect {
+    float x1 = 0, y1 = 0, x2 = 1, y2 = 1;
+    ZoneRect() = default;
+    ZoneRect(float a, float b, float c, float d) : x1(a), y1(b), x2(c), y2(d) {}
+};
+
+// One GPIO line (see src/gpio). Pin numbers are Linux sysfs numbers = bank*32 + group*8 + x.
+struct GpioLine {
+    std::string name;      // e.g. "relay1"
+    std::string role;      // relay, buzzer, led, alarm (outputs); pir, door (inputs)
+    int pin = -1;
+    bool output = true;
+    bool activeLow = false;
+};
+
 struct Config {
-    // video
+    // ---- video
     int width = 1920;
     int height = 1080;
     int fps = 30;
@@ -21,22 +37,69 @@ struct Config {
     int contrast = -1;
     int saturation = -1;
     int sharpness = -1;
-    // network
+
+    // ---- network
     int rtspPort = 554;
     std::string rtspPath = "/live/0";
     int httpPort = 8080;
-    // HTTP access token. Empty = the HTTP server listens on 127.0.0.1 only.
+    // Token for read-only machine access (/snapshot.jpg, /status.json). Empty = no token access.
     std::string httpToken;
+
+    // ---- storage
+    std::string dataDir = "/root/aid/data";
+    std::string webDir = "/root/aid/web";
+    std::string authFile = "/root/aid/auth.json";
+
+    // ---- AI detection
+    bool detectEnabled = true;
+    int detectIntervalMs = 500;                // time between detections
+    int detectConfPct = 45;                    // minimum confidence, percent
+    std::string modelPath = "/root/aid/model/yolov5.rknn";
+    std::string labelsPath = "/root/aid/model/coco_80_labels_list.txt";
+    std::vector<std::string> detectClasses = {"person", "car", "motorcycle", "bicycle",
+                                              "bus", "truck", "dog", "cat"};
+    std::vector<ZoneRect> zones;               // empty = whole frame
+
+    // ---- events
+    int eventCooldownS = 30;                   // minimum seconds between events of one type
+    int eventAbsentS = 10;                     // seconds without the object before "disappeared"
+    int eventEnterFrames = 2;                  // consecutive detections needed to confirm presence
+    bool motionEnabled = true;
+    int motionThresholdPct = 3;                // percent of sampled pixels that must change
+    int eventsKeep = 300;
+    int snapshotsKeep = 30;
+
+    // ---- MQTT / Home Assistant
+    bool mqttEnabled = false;
+    std::string mqttHost;
+    int mqttPort = 1883;
+    std::string mqttUser;
+    std::string mqttPassword;
+    std::string mqttPrefix = "luckfox-ai";
+    std::string mqttDeviceName = "Luckfox AI Camera";
+    std::string mqttDiscoveryPrefix = "homeassistant";
+
+    // ---- GPIO (disabled by default: pins must be verified for your board first)
+    bool gpioEnabled = false;
+    std::vector<GpioLine> gpio;
+
+    // ---- security
+    int sessionIdleMin = 15;
+    int sessionMaxHours = 8;
 };
 
-// Parses text in `key=value` lines ('#' starts a comment). Unknown keys and bad values are
-// reported in *problems; a bad value keeps the default. Returns false only on a hard error
-// (a value out of its allowed range).
+// Parses `key=value` lines ('#' starts a comment). Repeatable keys (zone, gpio) are appended.
+// Unknown keys and unparsable values are reported in *problems and ignored; a value that is
+// out of its allowed range makes the function return false (and is not applied).
 bool parseConfig(const std::string& text, Config* out, std::vector<std::string>* problems);
 
-// Reads and parses a file. Returns false (with a message in *err) if the file cannot be read
-// or a value is out of range.
 bool loadConfigFile(const std::string& path, Config* out, std::vector<std::string>* problems,
                     std::string* err);
+
+// Writes the configuration in the same key=value format (comments are not preserved).
+std::string serializeConfig(const Config& cfg);
+
+// Writes the file atomically (temp file + rename) with mode 0600.
+bool saveConfigFile(const std::string& path, const Config& cfg, std::string* err);
 
 }  // namespace aid
