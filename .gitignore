@@ -11,3 +11,12 @@ config/local.json
 docs/samples/
 # settings backups contain the access token and the password hash
 backups/
+
+# Telegram bridge: secrets, enrolled face photos, downloaded models
+tools/telegram_bridge.conf
+tools/known_faces/
+tools/face_models/
+known_faces/
+face_models/
+__pycache__/
+*.pyc

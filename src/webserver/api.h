@@ -45,7 +45,11 @@ public:
     // For HttpServer::start(). nowMs is injected so tests can control time (0 = real clock).
     bool handle(const HttpRequest& req, HttpResponse* resp, int64_t nowMs = 0);
 
+    // Wall-clock milliseconds used to name stored photos (tests inject a fixed one).
+    void setWallClock(std::function<int64_t()> fn) { wallClock_ = fn; }
+
 private:
+    std::function<int64_t()> wallClock_;
     bool handleApi(const HttpRequest& req, HttpResponse* resp, int64_t nowMs);
     void json(HttpResponse* r, int status, const std::string& body) const;
     void error(HttpResponse* r, int status, const std::string& msg) const;

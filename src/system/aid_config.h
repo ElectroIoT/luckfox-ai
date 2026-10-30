@@ -46,10 +46,9 @@ struct Config {
     std::string httpToken;
 
     // ---- storage
-    // Events and pictures go to RAM by default (/tmp is a RAM disk): the board's SPI flash showed
-    // controller timeouts in testing, so it is not written to at run time. History is lost at reboot.
-    // For lasting history point data_dir at a microSD card (e.g. /mnt/sdcard/aid).
-    std::string dataDir = "/tmp/aid-data";
+    // Events and pictures go to a memory card if there is one, else to RAM (/tmp is a RAM disk): the
+    // board's SPI flash showed controller timeouts in testing, so it is not written to at run time.
+    std::string dataDir = "auto";   // "auto": memory card if present, else /tmp/aid-data (RAM)
     std::string webDir = "/root/aid/web";
     std::string authFile = "/root/aid/auth.json";
 

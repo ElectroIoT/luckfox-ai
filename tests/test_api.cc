@@ -76,6 +76,7 @@ int main() {
     aid::Api api(&auth, &events, dir + "/web", token, 8, be);
     aid::HttpResponse r;
     int64_t t = 5000000;
+    api.setWallClock([] { return (int64_t)1700000000123LL; });   // photos are named by wall-clock time
 
     // public routes
     CHECK(api.handle(req("GET", "/health"), &r, t) && body(r) == "ok\n");
@@ -116,6 +117,57 @@ int main() {
     tr.bearer = token;                                           // the token does NOT open the admin API
     r = aid::HttpResponse();
     api.handle(tr, &r, t);
+    CHECK(r.status == 401);
+
+    // the token also reads events + their pictures and can store a photo, nothing more
+    tr = req("GET", "/api/events", "after_id=1");
+    tr.bearer = token;
+    r = aid::HttpResponse();
+    api.handle(tr, &r, t);
+    CHECK(r.status == 200 && has(body(r), "\"id\":3") && has(body(r), "\"id\":2") && !has(body(r), "\"id\":1,") &&
+          has(body(r), "\"last_id\":3"));
+    tr = req("GET", "/api/event_snapshot/2.jpg");
+    tr.bearer = token;
+    r = aid::HttpResponse();
+    api.handle(tr, &r, t);
+    CHECK(r.status == 200 && r.body.size() == 20);
+    tr = req("POST", "/api/capture");
+    tr.bearer = token;
+    r = aid::HttpResponse();
+    api.handle(tr, &r, t);
+    CHECK(r.status == 200 && has(body(r), "1700000000123.jpg"));
+    tr = req("POST", "/api/capture", "", "", "", false);          // no CSRF header
+    tr.bearer = token;
+    r = aid::HttpResponse();
+    api.handle(tr, &r, t);
+    CHECK(r.status == 403);
+    tr = req("POST", "/api/capture");
+    tr.bearer = "wrong-token";
+    r = aid::HttpResponse();
+    api.handle(tr, &r, t);
+    CHECK(r.status == 401);
+    tr = req("GET", "/api/captures");
+    tr.bearer = token;
+    r = aid::HttpResponse();
+    api.handle(tr, &r, t);
+    CHECK(r.status == 200 && has(body(r), "1700000000123.jpg"));
+    tr = req("GET", "/api/capture/1700000000123.jpg");
+    tr.bearer = token;
+    r = aid::HttpResponse();
+    api.handle(tr, &r, t);
+    CHECK(r.status == 200 && r.contentType == "image/jpeg" && r.body.size() == 5);
+    tr = req("GET", "/api/capture/..%2f1700000000123.jpg");
+    tr.bearer = token;
+    r = aid::HttpResponse();
+    api.handle(tr, &r, t);
+    CHECK(r.status == 400 || r.status == 404);
+    tr = req("DELETE", "/api/events", "all=1");
+    tr.bearer = token;                                           // the token cannot delete
+    r = aid::HttpResponse();
+    api.handle(tr, &r, t);
+    CHECK(r.status == 401 && events.count() == 3);
+    r = aid::HttpResponse();
+    api.handle(req("GET", "/api/captures"), &r, t);               // anonymous: no
     CHECK(r.status == 401);
 
     // login: CSRF header, wrong password, then success

@@ -58,6 +58,8 @@ public:
     std::map<std::string, int> currentCounts() const;
     bool groupPresent(const std::string& group) const;
     uint64_t lastEventId() const { return nextId_ - 1; }
+    // Continue numbering after the events already stored (history on a memory card survives reboots).
+    void setNextId(uint64_t id) { if (id > nextId_) nextId_ = id; }
     bool motionActive() const { return motionActive_; }
 
 private:

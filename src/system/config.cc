@@ -134,7 +134,10 @@ bool parseConfig(const std::string& text, Config* out, std::vector<std::string>*
         else if (key == "rtsp_port") rangeInt(key, val, 1, 65535, &out->rtspPort);
         else if (key == "http_port") rangeInt(key, val, 1, 65535, &out->httpPort);
         else if (key == "iq_dir") path(key, val, &out->iqDir);
-        else if (key == "data_dir") path(key, val, &out->dataDir);
+        else if (key == "data_dir") {
+            if (val == "auto") out->dataDir = val;   // memory card if there is one, else RAM (/tmp/aid-data)
+            else path(key, val, &out->dataDir);
+        }
         else if (key == "web_dir") path(key, val, &out->webDir);
         else if (key == "auth_file") path(key, val, &out->authFile);
         else if (key == "model_path") path(key, val, &out->modelPath);

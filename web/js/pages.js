@@ -65,8 +65,18 @@ const Pages = (() => {
           metric("SoC temperature", fmt(t) + " C", t, 65, 80));
         net.replaceChildren(kv([["Address", st.system.ip || "-"], ["RTSP", el("span", { class: "mono", text: "rtsp://" + (st.system.ip || "<ip>") + ":" + st.stream.rtsp_port + st.stream.rtsp_path })],
           ["MQTT", st.mqtt.enabled ? pill(st.mqtt.connected ? "connected" : "not connected", st.mqtt.connected ? "ok" : "warn") : pill("off")]]));
-        sto.replaceChildren(el("div", { class: "hint", text: "Events and snapshots" }),
-          st.system.storage_total_mb > 0 ? metric("Free", fmt(st.system.storage_free_mb, 0) + " of " + fmt(st.system.storage_total_mb, 0) + " MB", 100 - 100 * st.system.storage_free_mb / st.system.storage_total_mb, 85, 95) : el("div", { class: "muted", text: "unknown" }));
+        const S = st.system, sd = S.sd || {};
+        const used = (free, total) => 100 - 100 * free / total;
+        const parts = [el("div", { class: "hint", text: "System flash (firmware and program files)" }),
+          S.flash_total_mb > 0 ? metric("Free", fmt(S.flash_free_mb, 0) + " of " + fmt(S.flash_total_mb, 0) + " MB", used(S.flash_free_mb, S.flash_total_mb), 85, 95) : el("div", { class: "muted", text: "unknown" })];
+        if (sd.in_use) {
+          parts.push(el("div", { class: "hint", text: "Memory card (events and photos)" }),
+            sd.total_mb > 0 ? metric("Free", fmt(sd.free_mb, 0) + " of " + fmt(sd.total_mb, 0) + " MB", used(sd.free_mb, sd.total_mb), 85, 95) : el("div", { class: "muted", text: "unknown" }));
+        } else {
+          parts.push(el("div", { class: "hint", text: "Events and photos" }), el("div", { class: "row" }, pill("RAM only", "warn"),
+            el("span", { class: "muted", text: sd.present ? "card found but not usable" : "no memory card, lost at reboot" })));
+        }
+        sto.replaceChildren(...parts);
       },
       stop() { view.stop(); },
     };
@@ -79,6 +89,15 @@ const Pages = (() => {
     const boxes = check("Show detection boxes", true, (e) => view.setBoxes(e.target.checked));
     const sel = el("select", {}, PRESETS.map((p) => el("option", { value: p[1] + "x" + p[2], text: p[0] })));
     const note = restartBox();
+    const photos = el("div", { class: "muted", text: "Loading..." });
+    async function loadPhotos() {
+      try {
+        const r = await api("GET", "/api/captures");
+        photos.replaceChildren(...(r.captures.length ? r.captures.slice(0, 20).map((n) => el("div", { class: "row" },
+          el("a", { href: "/api/capture/" + n, target: "_blank", rel: "noopener", text: new Date(Number(n.slice(0, -4))).toLocaleString() }))) : [el("span", { class: "muted", text: "No photos yet." })]));
+      } catch (e) { photos.textContent = e.message; }
+    }
+    loadPhotos();
     root.append(el("div", { class: "topbar" }, el("h1", { text: "Live camera" })),
       el("div", { class: "card" }, view.root,
         el("div", { class: "row" },
@@ -90,7 +109,12 @@ const Pages = (() => {
               el("a", { href: url, download: "snapshot-" + new Date().toISOString().replace(/[:.]/g, "-") + ".jpg" }).click();
               setTimeout(() => URL.revokeObjectURL(url), 5000);
             } catch (e) { toast(e.message, "bad"); }
+          } }),
+          el("button", { class: "btn", text: "Take photo (keep on board)", onclick: async () => {
+            try { const r = await api("POST", "/api/capture", {}); toast("Photo stored: " + r.name, "ok"); loadPhotos(); } catch (e) { toast(e.message, "bad"); }
           } }), boxes)),
+      el("div", { class: "card" }, el("h2", { text: "Stored photos" }), photos,
+        el("p", { class: "hint", text: "Photos taken with the button above or with the Telegram bot are kept in the board's storage (the memory card if one is inserted, otherwise RAM until the next reboot). Click one to open it." })),
       el("div", { class: "grid cols-2" },
         el("div", { class: "card" }, el("h2", { text: "Stream" }), info,
           el("p", { class: "hint", text: "Play the video in VLC or Home Assistant with the RTSP address above. Recording to a file is not implemented in this version." })),
@@ -265,7 +289,7 @@ const Pages = (() => {
       const keep = num(c.events_keep, 10, 2000), snaps = num(c.snapshots_keep, 0, 500);
       wrap.append(el("div", { class: "card" }, el("h2", { text: "Storage" }),
         kv([["Events and pictures", fmt(sys.data_free_mb, 0) + " of " + fmt(sys.data_total_mb, 0) + " MB free"], ["System flash", fmt(sys.root_free_mb, 0) + " of " + fmt(sys.root_total_mb, 0) + " MB free"]]),
-        el("p", { class: "hint", text: "Pictures are written to the board's flash unless you point data_dir at a microSD card in the configuration file. Keep the numbers small to limit flash wear." }),
+        el("p", { class: "hint", text: "Pictures are kept in RAM (lost at reboot) unless a microSD card is inserted: with data_dir=auto the card is used automatically and keeps a longer history. Nothing is written to the board's flash." }),
         field("Events kept", keep), field("Event pictures kept", snaps),
         el("button", { class: "btn primary", text: "Save", onclick: () => saveConfig({ events_keep: +keep.value, snapshots_keep: +snaps.value }, note) })));
 

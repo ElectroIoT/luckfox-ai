@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 380" role="img" aria-labelledby="t d">
+  <title id="t">Telegram alert flow</title>
+  <desc id="d">A person walks into view, the board raises an event with a picture, the bridge on your PC optionally recognises the face and sends a Telegram message with the name and photo to your phone.</desc>
+  <style>
+    .sans{font-family:system-ui,"Segoe UI",Roboto,Arial,sans-serif}
+    .n{fill:#12233b;stroke:#38bdf8;stroke-opacity:.55;stroke-width:1.5}
+    .h{font-weight:700;font-size:17px;fill:#fff}
+    .s{font-size:13px;fill:#a9bbd2}
+    .step{font-weight:800;font-size:13px;fill:#06243a}
+    .flow{fill:none;stroke:#34d399;stroke-width:2.4;stroke-dasharray:7 7;animation:dash 1s linear infinite}
+    .pkt{animation:go 4.8s ease-in-out infinite}
+    .msg{animation:pop 4.8s ease-in-out infinite;transform-box:fill-box;transform-origin:bottom center}
+    @keyframes dash{to{stroke-dashoffset:-14}}
+    @keyframes go{0%{transform:translateX(0);opacity:0}8%{opacity:1}92%{opacity:1}100%{transform:translateX(690px);opacity:0}}
+    @keyframes pop{0%,70%{transform:scale(.6);opacity:0}80%,100%{transform:scale(1);opacity:1}}
+    @media (prefers-reduced-motion:reduce){.flow,.pkt,.msg{animation:none}.msg{opacity:1}}
+  </style>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#34d399"/></marker></defs>
+  <rect width="1000" height="380" rx="20" fill="#0b1220"/>
+  <text class="sans" x="36" y="50" font-size="24" font-weight="800" fill="#fff">A Telegram alert, step by step</text>
+
+  <g class="sans">
+    <rect class="n" x="30" y="110" width="200" height="120" rx="14"/><text class="h" x="50" y="146">1  Board sees you</text><text class="s" x="50" y="170">NPU finds a person,</text><text class="s" x="50" y="190">event + picture saved</text>
+    <rect class="n" x="300" y="110" width="200" height="120" rx="14"/><text class="h" x="320" y="146">2  Bridge asks</text><text class="s" x="320" y="170">your PC polls the</text><text class="s" x="320" y="190">board every 2 s</text>
+    <rect class="n" x="570" y="110" width="190" height="120" rx="14"/><text class="h" x="590" y="146">3  Name (optional)</text><text class="s" x="590" y="170">face matched with</text><text class="s" x="590" y="190">photos you enrolled</text>
+    <rect class="n" x="830" y="110" width="140" height="120" rx="14"/><text class="h" x="850" y="146">4  Phone</text><text class="s" x="850" y="170">alert + photo</text>
+  </g>
+  <path class="flow" d="M232 170H296" marker-end="url(#a)"/>
+  <path class="flow" d="M502 170H566" marker-end="url(#a)"/>
+  <path class="flow" d="M762 170H826" marker-end="url(#a)"/>
+  <g class="pkt"><rect x="60" y="256" width="26" height="20" rx="4" fill="#38bdf8"/><circle cx="73" cy="266" r="4" fill="#0b1220"/></g>
+  <path d="M60 266H970" stroke="#ffffff22" stroke-dasharray="3 6"/>
+
+  <g class="msg">
+    <rect x="610" y="296" width="360" height="62" rx="14" fill="#1b3a5c"/>
+    <text class="sans" x="628" y="322" font-size="16" font-weight="700" fill="#fff">Ravi detected (87%)</text>
+    <text class="sans" x="628" y="344" font-size="13" fill="#a9bbd2">+ photo, 18:31:22. Buttons: Photo, Video, Status</text>
+  </g>
+  <text class="sans s" x="36" y="330">Photos and names stay on your network until the message is sent to Telegram.</text>
+  <text class="sans s" x="36" y="350">Telegram bot chats are not end-to-end encrypted.</text>
+</svg>

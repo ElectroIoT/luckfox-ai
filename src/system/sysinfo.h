@@ -2,6 +2,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace aid {
 
@@ -22,6 +23,20 @@ double systemUptimeSeconds();
 std::string localIpv4();
 // Total and free space of the filesystem holding `path`, in MB. False if statvfs fails.
 bool diskUsageMB(const std::string& path, double* totalMB, double* freeMB);
+
+// A memory card (any /dev/mmcblk* device). `present` = the device node exists, `mounted` = it appears
+// in the mount table at `mountPoint`. NOT tested on real hardware (no card was available).
+struct SdCard {
+    bool present = false, mounted = false;
+    std::string device, mountPoint;
+};
+// Looks for a card; parses `mountsText` (the content of /proc/mounts) so tests can feed a fake one.
+SdCard findSdCard(const std::string& mountsText, const std::vector<std::string>& existingDevices);
+// Reads the real /proc/mounts and /dev.
+SdCard findSdCard();
+// Tries to mount an unmounted card read-write at `mountPoint` (vfat, exfat, ext4). True if mounted.
+bool tryMountSd(SdCard* card, const std::string& mountPoint, std::string* err);
+
 // First line of a text file without the line ending ("" if unreadable).
 std::string firstLine(const std::string& path);
 // Value of KEY="value" / KEY=value in a file such as /etc/os-release ("" if absent).

@@ -50,7 +50,7 @@ std::string csvField(const std::string& s) {
 
 EventStore::EventStore(const std::string& dataDir, int keepEvents, int keepSnapshots)
     : dir_(dataDir), file_(dataDir + "/events.jsonl"), snapDir_(dataDir + "/snapshots"),
-      keepEvents_(keepEvents), keepSnapshots_(keepSnapshots) {}
+      capDir_(dataDir + "/captures"), keepEvents_(keepEvents), keepSnapshots_(keepSnapshots) {}
 
 std::string EventStore::toJson(const Event& e) {
     std::string s = "{\"id\":" + std::to_string(e.id) + ",\"ts\":" + std::to_string((long long)e.tsMs) +
@@ -87,7 +87,7 @@ bool EventStore::fromJson(const std::string& line, Event* out) {
 
 bool EventStore::init(std::string* err) {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (!mkdirP(snapDir_)) {
+    if (!mkdirP(snapDir_) || !mkdirP(capDir_)) {
         if (err) *err = "cannot create " + snapDir_;
         return false;
     }
@@ -183,8 +183,10 @@ size_t EventStore::clearAll() {
     return n;
 }
 
-void EventStore::pruneSnapshots() {
-    DIR* d = opendir(snapDir_.c_str());
+void EventStore::pruneSnapshots() { pruneDir(snapDir_, keepSnapshots_); }
+
+void EventStore::pruneDir(const std::string& dir, int keep) {
+    DIR* d = opendir(dir.c_str());
     if (!d) return;
     std::vector<std::pair<unsigned long long, std::string>> files;
     while (struct dirent* e = readdir(d)) {
@@ -193,10 +195,50 @@ void EventStore::pruneSnapshots() {
     }
     closedir(d);
     std::sort(files.begin(), files.end());
-    while ((int)files.size() > keepSnapshots_) {
-        unlink((snapDir_ + "/" + files.front().second).c_str());
-        files.erase(files.begin());
+    size_t drop = files.size() > (size_t)keep ? files.size() - (size_t)keep : 0;
+    for (size_t i = 0; i < drop; ++i) unlink((dir + "/" + files[i].second).c_str());
+}
+
+uint64_t EventStore::maxId() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    uint64_t m = 0;
+    for (const Event& e : events_) m = std::max<uint64_t>(m, e.id);
+    return m;
+}
+
+std::string EventStore::saveCapture(int64_t tsMs, const std::vector<uint8_t>& jpeg) {
+    if (jpeg.empty() || tsMs <= 0) return "";
+    std::lock_guard<std::mutex> lock(mutex_);
+    const std::string name = std::to_string((long long)tsMs) + ".jpg";
+    const std::string path = capDir_ + "/" + name;
+    FILE* f = fopen(path.c_str(), "wb");
+    if (!f) return "";
+    const bool ok = fwrite(jpeg.data(), 1, jpeg.size(), f) == jpeg.size();
+    fclose(f);
+    if (!ok) { unlink(path.c_str()); return ""; }
+    pruneDir(capDir_, std::max(keepSnapshots_, 1));
+    return access(path.c_str(), F_OK) == 0 ? name : "";
+}
+
+std::vector<std::string> EventStore::listCaptures() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    std::vector<std::pair<unsigned long long, std::string>> files;
+    if (DIR* d = opendir(capDir_.c_str())) {
+        while (struct dirent* e = readdir(d)) {
+            const std::string n = e->d_name;
+            if (validSnapshotName(n)) files.push_back({strtoull(n.c_str(), nullptr, 10), n});
+        }
+        closedir(d);
     }
+    std::sort(files.rbegin(), files.rend());
+    std::vector<std::string> out;
+    for (const auto& f : files) out.push_back(f.second);
+    return out;
+}
+
+std::string EventStore::capturePath(const std::string& name) const {
+    if (!validSnapshotName(name)) return "";
+    return capDir_ + "/" + name;
 }
 
 std::string EventStore::saveSnapshot(uint64_t id, const std::vector<uint8_t>& jpeg) {

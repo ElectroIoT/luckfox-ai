@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" role="img" aria-labelledby="t d">
+  <title id="t">How luckfox-ai works</title>
+  <desc id="d">Data flow: the camera feeds the hardware H.264 encoder and RTSP stream, snapshots go to the NPU detector, the event engine drives the dashboard, Home Assistant over MQTT, the Telegram bridge and the memory card.</desc>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#38bdf8"/>
+    </marker>
+  </defs>
+  <style>
+    .sans{font-family:system-ui,"Segoe UI",Roboto,Arial,sans-serif}
+    .node{fill:#12233b;stroke:#38bdf8;stroke-opacity:.55;stroke-width:1.5}
+    .hot{fill:#0f2f2a;stroke:#34d399;stroke-opacity:.8}
+    .ext{fill:#2a2140;stroke:#a78bfa;stroke-opacity:.7}
+    .h{font-weight:700;font-size:19px;fill:#fff}
+    .s{font-weight:500;font-size:13.5px;fill:#a9bbd2}
+    .lab{font-weight:600;font-size:13px;fill:#7dd3fc}
+    .flow{fill:none;stroke:#38bdf8;stroke-width:2.2;stroke-dasharray:7 7;animation:dash 1.1s linear infinite}
+    .flow.g{stroke:#34d399}
+    .flow.v{stroke:#a78bfa}
+    .pulse{animation:pulse 2.4s ease-in-out infinite}
+    @keyframes dash{to{stroke-dashoffset:-14}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+    @media (prefers-reduced-motion:reduce){.flow,.pulse{animation:none}}
+  </style>
+  <rect width="1200" height="560" rx="22" fill="#0b1220"/>
+  <text class="sans" x="40" y="48" font-size="24" font-weight="800" fill="#fff">How it works</text>
+  <text class="sans" x="40" y="72" font-size="14" fill="#a9bbd2">Everything inside the dashed box runs on the board in one program (aid-core). The right side runs on other machines.</text>
+  <rect x="30" y="96" width="800" height="440" rx="16" fill="none" stroke="#38bdf8" stroke-opacity=".35" stroke-dasharray="6 6"/>
+  <text class="sans lab" x="46" y="120">Luckfox Pico Pro (128 MB, 0.5 TOPS NPU)</text>
+
+  <!-- nodes: board -->
+  <g class="sans">
+    <rect class="node" x="50" y="150" width="160" height="80" rx="12"/><text class="h" x="68" y="184">SC3336</text><text class="s" x="68" y="207">camera + ISP</text>
+    <rect class="node" x="270" y="150" width="190" height="80" rx="12"/><text class="h" x="288" y="184">H.264 encoder</text><text class="s" x="288" y="207">hardware, 28-30 fps</text>
+    <rect class="node" x="270" y="290" width="190" height="80" rx="12"/><text class="h" x="288" y="324">Frame grabber</text><text class="s" x="288" y="347">1 frame / 500 ms</text>
+    <rect class="node hot" x="510" y="290" width="150" height="80" rx="12"/><text class="h" x="528" y="324">NPU YOLOv5</text><text class="s" x="528" y="347">about 89 ms</text>
+    <rect class="node hot pulse" x="510" y="420" width="150" height="80" rx="12"/><text class="h" x="528" y="454">Event engine</text><text class="s" x="528" y="477">zones, cooldown</text>
+    <rect class="node" x="700" y="150" width="110" height="80" rx="12"/><text class="h" x="716" y="184">RTSP</text><text class="s" x="716" y="207">port 554</text>
+    <rect class="node" x="700" y="290" width="110" height="80" rx="12"/><text class="h" x="716" y="324">Web API</text><text class="s" x="716" y="347">port 8080</text>
+    <rect class="node" x="270" y="420" width="190" height="80" rx="12"/><text class="h" x="288" y="454">Storage</text><text class="s" x="288" y="477">microSD, else RAM</text>
+    <rect class="node" x="700" y="420" width="110" height="80" rx="12"/><text class="h" x="716" y="454">MQTT</text><text class="s" x="716" y="477">discovery</text>
+  </g>
+  <!-- nodes: outside -->
+  <g class="sans">
+    <rect class="ext" x="890" y="150" width="270" height="64" rx="12"/><text class="h" x="908" y="178">VLC / Home Assistant</text><text class="s" x="908" y="200">live video</text>
+    <rect class="ext" x="890" y="260" width="270" height="64" rx="12"/><text class="h" x="908" y="288">Browser dashboard</text><text class="s" x="908" y="310">6 pages, login</text>
+    <rect class="ext" x="890" y="370" width="270" height="64" rx="12"/><text class="h" x="908" y="398">Telegram bridge</text><text class="s" x="908" y="420">alerts, names, photo, video</text>
+    <rect class="ext" x="890" y="470" width="270" height="64" rx="12"/><text class="h" x="908" y="498">Home Assistant</text><text class="s" x="908" y="520">sensors and automations</text>
+  </g>
+
+  <!-- flows -->
+  <path class="flow" d="M210 190H266" marker-end="url(#arr)"/>
+  <path class="flow" d="M460 190H696" marker-end="url(#arr)"/>
+  <path class="flow" d="M365 232V286" marker-end="url(#arr)"/>
+  <path class="flow g" d="M460 330H506" marker-end="url(#arr)"/>
+  <path class="flow g" d="M585 372V416" marker-end="url(#arr)"/>
+  <path class="flow g" d="M510 460H464" marker-end="url(#arr)"/>
+  <path class="flow g" d="M660 460H696" marker-end="url(#arr)"/>
+  <path class="flow g" d="M660 330H696" marker-end="url(#arr)"/>
+  <path class="flow v" d="M810 190H886" marker-end="url(#arr)"/>
+  <path class="flow v" d="M810 330 Q850 330 850 292 H886" marker-end="url(#arr)"/>
+  <path class="flow v" d="M810 346 Q850 346 850 402 H886" marker-end="url(#arr)"/>
+  <path class="flow v" d="M810 460 Q850 460 850 502 H886" marker-end="url(#arr)"/>
+</svg>

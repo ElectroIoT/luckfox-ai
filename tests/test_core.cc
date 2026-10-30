@@ -15,6 +15,7 @@
 
 #include "aid_config.h"
 #include "http_server.h"
+#include "sysinfo.h"
 
 static int g_fail = 0, g_run = 0;
 #define CHECK(cond)                                                          \
@@ -230,7 +231,40 @@ static void testServer() {
     local.stop();
 }
 
+static void testSdCard() {
+    const std::string mounts =
+        "ubi0:rootfs / ubifs rw,relatime 0 0\ntmpfs /tmp tmpfs rw 0 0\n"
+        "/dev/mmcblk1p1 /mnt/sdcard vfat rw,relatime 0 0\n";
+    aid::SdCard c = aid::findSdCard(mounts, {});
+    CHECK(c.present && c.mounted && c.device == "/dev/mmcblk1p1" && c.mountPoint == "/mnt/sdcard");
+    // no card at all
+    c = aid::findSdCard("ubi0:rootfs / ubifs rw 0 0\n", {});
+    CHECK(!c.present && !c.mounted);
+    // card inserted but not mounted: the partition is preferred over the bare device
+    c = aid::findSdCard("ubi0:rootfs / ubifs rw 0 0\n", {"/dev/mmcblk1", "/dev/mmcblk1p1"});
+    CHECK(c.present && !c.mounted && c.device == "/dev/mmcblk1p1");
+    c = aid::findSdCard("", {"/dev/mmcblk1p1", "/dev/mmcblk1"});
+    CHECK(c.device == "/dev/mmcblk1p1");
+    c = aid::findSdCard("", {"/dev/mmcblk0"});
+    CHECK(c.present && c.device == "/dev/mmcblk0");
+    // boot / rpmb partitions are not a card
+    c = aid::findSdCard("", {"/dev/mmcblk0boot0", "/dev/mmcblk0rpmb"});
+    CHECK(!c.present);
+    // a mount point with an escaped space cannot be used
+    c = aid::findSdCard("/dev/mmcblk1p1 /mnt/my\\040card vfat rw 0 0\n", {});
+    CHECK(!c.mounted);
+
+    aid::Config cfg;
+    std::vector<std::string> problems;
+    CHECK(cfg.dataDir == "auto");
+    CHECK(aid::parseConfig("data_dir=auto\n", &cfg, &problems) && cfg.dataDir == "auto");
+    CHECK(aid::parseConfig("data_dir=/mnt/sdcard/x\n", &cfg, &problems) && cfg.dataDir == "/mnt/sdcard/x");
+    aid::Config bad;
+    CHECK(!aid::parseConfig("data_dir=automatic\n", &bad, &problems));
+}
+
 int main() {
+    testSdCard();
     testConfig();
     testParsing();
     testStaticFiles();

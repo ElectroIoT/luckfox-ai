@@ -35,6 +35,15 @@ public:
     // Full path for a snapshot file name, or "" if the name is not of the form <digits>.jpg.
     std::string snapshotPath(const std::string& name) const;
 
+    // Highest event id stored (0 if none): the engine continues after it.
+    uint64_t maxId() const;
+
+    // Manual photos ("capture" button, Telegram /photo): <dataDir>/captures/<ms since epoch>.jpg,
+    // the newest `keepSnapshots` are kept. saveCapture returns the file name or "".
+    std::string saveCapture(int64_t tsMs, const std::vector<uint8_t>& jpeg);
+    std::vector<std::string> listCaptures() const;     // newest first
+    std::string capturePath(const std::string& name) const;   // "" if the name is invalid
+
     static std::string toJson(const Event& e);
     static std::string toCsvRow(const Event& e);
     static bool fromJson(const std::string& line, Event* out);
@@ -42,9 +51,10 @@ public:
 private:
     void rewriteFile();            // caller holds mutex_
     void pruneSnapshots();         // caller holds mutex_
+    static void pruneDir(const std::string& dir, int keep);
     void removeSnapshotFile(const std::string& name);
 
-    std::string dir_, file_, snapDir_;
+    std::string dir_, file_, snapDir_, capDir_;
     int keepEvents_, keepSnapshots_;
     mutable std::mutex mutex_;
     std::vector<Event> events_;    // oldest first

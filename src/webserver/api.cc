@@ -2,6 +2,7 @@
 
 #include <time.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <map>
 #include <sstream>
@@ -16,6 +17,12 @@ namespace {
 int64_t realNowMs() {
     struct timespec t;
     clock_gettime(CLOCK_MONOTONIC, &t);
+    return (int64_t)t.tv_sec * 1000 + t.tv_nsec / 1000000;
+}
+
+int64_t realWallMs() {
+    struct timespec t;
+    clock_gettime(CLOCK_REALTIME, &t);
     return (int64_t)t.tv_sec * 1000 + t.tv_nsec / 1000000;
 }
 
@@ -183,6 +190,26 @@ bool Api::handle(const HttpRequest& req, HttpResponse* resp, int64_t nowMs) {
         return false;
     }
 
+    // Machine token (Telegram bridge etc.): read events, their pictures and the saved photos, and
+    // take a photo that is stored on the board. Nothing else.
+    if (!session) {
+        const bool readRoute = req.method == "GET" &&
+                               (req.path == "/api/events" || req.path == "/api/captures" ||
+                                req.path.compare(0, 20, "/api/event_snapshot/") == 0 ||
+                                req.path.compare(0, 13, "/api/capture/") == 0);
+        const bool captureRoute = req.method == "POST" && req.path == "/api/capture";
+        if ((readRoute || captureRoute) && tokenAuthorized(req, token_)) {
+            if (captureRoute) {
+                auto it = req.headers.find("x-requested-with");
+                if (it == req.headers.end() || it->second != "aid-dashboard") {
+                    error(resp, 403, "missing X-Requested-With header");
+                    return true;
+                }
+            }
+            return handleApi(req, resp, nowMs);
+        }
+    }
+
     // ---- public API routes
     if (req.path == "/api/auth/state" && req.method == "GET") {
         json(resp, 200, "{\"setup_required\":" + b(!auth_->hasPassword()) + ",\"logged_in\":" + b(session) +
@@ -275,10 +302,48 @@ bool Api::handleApi(const HttpRequest& req, HttpResponse* resp, int64_t nowMs) {
         std::string type = urlDecode(queryParam(req.query, "type"));
         for (char c : type)
             if (!((c >= 'a' && c <= 'z') || c == '_')) { error(resp, 400, "bad type filter"); return true; }
-        const std::vector<Event> ev = events_->query((size_t)limit, type, since);
-        std::string o = "{\"total\":" + std::to_string(events_->count()) + ",\"events\":[";
+        long long afterId = 0;
+        parseLong(queryParam(req.query, "after_id"), &afterId);
+        std::vector<Event> ev = events_->query((size_t)limit, type, since);
+        if (afterId > 0)
+            ev.erase(std::remove_if(ev.begin(), ev.end(), [&](const Event& e) { return (long long)e.id <= afterId; }), ev.end());
+        std::string o = "{\"total\":" + std::to_string(events_->count()) + ",\"last_id\":" +
+                        std::to_string((unsigned long long)events_->maxId()) + ",\"events\":[";
         for (size_t i = 0; i < ev.size(); ++i) o += (i ? "," : "") + EventStore::toJson(ev[i]);
         json(resp, 200, o + "]}");
+        return true;
+    }
+
+    // ---- manual photos (dashboard button, Telegram /photo)
+    if (p == "/api/capture" && post) {
+        std::vector<uint8_t> jpeg;
+        std::string e;
+        if (!be_.snapshot || !be_.snapshot(&jpeg, &e)) { error(resp, 503, "snapshot failed: " + e); return true; }
+        const std::string name = events_->saveCapture(wallClock_ ? wallClock_() : realWallMs(), jpeg);
+        if (name.empty()) { error(resp, 500, "cannot store the photo (storage full or unavailable)"); return true; }
+        json(resp, 200, "{\"ok\":true,\"name\":" + q(name) + "}");
+        logInfo("photo captured: " + name);
+        return true;
+    }
+    if (p == "/api/captures" && get) {
+        std::string o = "{\"captures\":[";
+        const std::vector<std::string> names = events_->listCaptures();
+        for (size_t i = 0; i < names.size() && i < 200; ++i) o += (i ? "," : "") + q(names[i]);
+        json(resp, 200, o + "]}");
+        return true;
+    }
+    if (p.compare(0, 13, "/api/capture/") == 0 && get) {
+        const std::string path = events_->capturePath(p.substr(13));
+        FILE* f = path.empty() ? nullptr : fopen(path.c_str(), "rb");
+        if (path.empty()) { error(resp, 400, "bad photo name"); return true; }
+        if (!f) { error(resp, 404, "photo not found"); return true; }
+        std::vector<uint8_t> data;
+        uint8_t buf[4096];
+        size_t n;
+        while ((n = fread(buf, 1, sizeof(buf), f)) > 0 && data.size() < 4 * 1024 * 1024) data.insert(data.end(), buf, buf + n);
+        fclose(f);
+        resp->contentType = "image/jpeg";
+        resp->body = data;
         return true;
     }
     if (p == "/api/events/export" && get) {

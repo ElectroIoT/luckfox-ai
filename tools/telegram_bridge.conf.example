@@ -1,0 +1,42 @@
+# Telegram bridge settings. Copy to telegram_bridge.conf next to telegram_bridge.py and fill in.
+# The real file holds secrets (board token, bot token): keep it private, never commit it.
+# Lines are key=value; '#' starts a comment. Wrong values stop the program with a message.
+
+# ---- the board
+board_url=http://192.168.1.160:8080
+# the board's http_token (in /root/aid/aid.conf on the board; scripts/install.sh also saved it in ~/.aid_token)
+board_token=PASTE_THE_BOARD_TOKEN
+# default: rtsp://<host of board_url>:554/live/0
+#rtsp_url=rtsp://192.168.1.160:554/live/0
+
+# ---- Telegram
+# create the bot with @BotFather (/newbot) and paste its token here
+telegram_token=123456789:PASTE_THE_BOT_TOKEN
+# who may use the bot and receives alerts. Send /whoami to your bot to learn your number.
+# Several people: 111111111,222222222
+allowed_chat_ids=PASTE_YOUR_CHAT_ID
+
+# ---- alerts
+# event types that send a message: person_detected, vehicle_detected, animal_detected, motion_detected,
+# object_entered, camera_lost, ...
+alert_types=person_detected
+alerts_enabled=1
+# how often the board is asked for new events (seconds, 1..60)
+poll_interval_s=2
+
+# ---- photo and video
+# /photo also stores the picture on the board (on its memory card if one is inserted)
+save_photos_on_board=1
+# default /video length in seconds (3..60); needs ffmpeg on this machine
+video_seconds=10
+ffmpeg=ffmpeg
+
+# ---- names of known people (optional, off unless known_faces_dir is set)
+# needs:  pip install opencv-python numpy   and   python telegram_bridge.py --download-face-models
+# folder layout:  known_faces/Ravi/1.jpg  known_faces/Ravi/2.jpg  known_faces/Priya/1.jpg ...
+#known_faces_dir=known_faces
+#face_models_dir=face_models
+# similarity needed to accept a name (0.1..0.9): higher = fewer wrong names, more "unknown"
+#face_match=0.363
+# when no face is visible in the event picture, try this many live pictures, one second apart
+#recognise_burst=4

@@ -77,7 +77,9 @@ int main(int argc, char** argv) {
                  "\"motion\":{\"enabled\":true,\"active\":%s,\"changed_pct\":%.1f},\"present\":{\"person\":1},"
                  "\"events\":{\"stored\":14,\"last_id\":14},\"mqtt\":{\"enabled\":true,\"connected\":true},"
                  "\"system\":{\"soc_temp_c\":%.1f,\"mem_available_mb\":%.1f,\"mem_total_mb\":54.3,\"process_rss_mb\":19.4,\"cpu_system_pct\":%.1f,"
-                 "\"cpu_process_pct\":%.1f,\"ip\":\"192.168.1.160\",\"storage_free_mb\":120.5,\"storage_total_mb\":181.3}}",
+                 "\"cpu_process_pct\":%.1f,\"ip\":\"192.168.1.160\",\"storage_free_mb\":120.5,\"storage_total_mb\":181.3,"
+                 "\"flash_free_mb\":137.5,\"flash_total_mb\":181.3,"
+                 "\"sd\":{\"present\":true,\"mounted\":true,\"in_use\":true,\"device\":\"/dev/mmcblk1p1\",\"total_mb\":29800.0,\"free_mb\":27150.0}}}",
                  t * 2, (long long)(time(nullptr) * 1000LL), t * 60, t / 5, 2000.0 + 60.0 * sin(t / 3.0), t / 10, t,
                  (t % 6 < 2) ? "true" : "false", (t % 6 < 2) ? 6.5 : 0.4, 62.0 + 4.0 * sin(t / 5.0), 31.0 + 2.0 * cos(t / 4.0),
                  28.0 + 12.0 * sin(t / 4.0), 21.0 + 6.0 * sin(t / 4.0));

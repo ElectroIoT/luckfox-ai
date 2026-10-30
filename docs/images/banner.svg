@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" role="img" aria-labelledby="t d">
+  <title id="t">luckfox-ai</title>
+  <desc id="d">Animated banner: a small camera board watches a scene, a scan line sweeps and a detection box labelled person follows a figure.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/><stop offset="1" stop-color="#17375f"/>
+    </linearGradient>
+    <linearGradient id="acc" x1="0" x2="1">
+      <stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="scanfade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#38bdf8" stop-opacity="0"/><stop offset="1" stop-color="#38bdf8" stop-opacity=".55"/>
+    </linearGradient>
+    <clipPath id="screen"><rect x="770" y="50" width="360" height="220" rx="16"/></clipPath>
+  </defs>
+  <style>
+    .sans{font-family:system-ui,"Segoe UI",Roboto,Arial,sans-serif}
+    .title{font-weight:800;font-size:68px;fill:#fff}
+    .sub{font-weight:500;font-size:23px;fill:#b6c6dc}
+    .chip{fill:#ffffff14;stroke:#ffffff33}
+    .chipt{font-weight:600;font-size:15px;fill:#dbe7f5}
+    .scan{animation:scan 3.6s linear infinite}
+    .walk{animation:walk 7s ease-in-out infinite}
+    .box{animation:blink 1.4s ease-in-out infinite}
+    .ring{transform-box:fill-box;transform-origin:center;animation:ring 2.4s ease-out infinite}
+    .ring.b{animation-delay:1.2s}
+    .dot{animation:blink 1s steps(2,end) infinite}
+    @keyframes scan{0%{transform:translateY(-70px)}100%{transform:translateY(220px)}}
+    @keyframes walk{0%{transform:translateX(-90px)}50%{transform:translateX(90px)}100%{transform:translateX(-90px)}}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+    @keyframes ring{0%{transform:scale(.55);opacity:.9}100%{transform:scale(1.5);opacity:0}}
+    @media (prefers-reduced-motion:reduce){.scan,.walk,.box,.ring,.dot{animation:none}}
+  </style>
+  <rect width="1200" height="320" rx="24" fill="url(#bg)"/>
+  <g opacity=".07" stroke="#fff"><path d="M0 80H1200M0 160H1200M0 240H1200M200 0V320M400 0V320M600 0V320M800 0V320M1000 0V320"/></g>
+
+  <text class="sans title" x="60" y="130">luckfox<tspan fill="url(#acc)">-ai</tspan></text>
+  <text class="sans sub" x="62" y="172">AI camera for the Luckfox Pico Pro (RV1106G2)</text>
+  <g class="sans">
+    <rect class="chip" x="62" y="200" width="118" height="34" rx="17"/><text class="chipt" x="82" y="222">NPU YOLOv5</text>
+    <rect class="chip" x="190" y="200" width="82" height="34" rx="17"/><text class="chipt" x="210" y="222">RTSP</text>
+    <rect class="chip" x="282" y="200" width="150" height="34" rx="17"/><text class="chipt" x="302" y="222">Home Assistant</text>
+    <rect class="chip" x="442" y="200" width="98" height="34" rx="17"/><text class="chipt" x="462" y="222">Telegram</text>
+    <rect class="chip" x="62" y="244" width="104" height="34" rx="17"/><text class="chipt" x="82" y="266">microSD</text>
+    <rect class="chip" x="176" y="244" width="124" height="34" rx="17"/><text class="chipt" x="196" y="266">Open source</text>
+  </g>
+
+  <!-- camera view -->
+  <rect x="770" y="50" width="360" height="220" rx="16" fill="#0a1628" stroke="#38bdf8" stroke-opacity=".5" stroke-width="2"/>
+  <g clip-path="url(#screen)">
+    <path d="M770 220 L1130 190 V270 H770Z" fill="#102846"/>
+    <path d="M770 238 L1130 214" stroke="#1d4372" stroke-width="2"/>
+    <g class="walk">
+      <g class="box">
+        <rect x="905" y="102" width="70" height="132" rx="6" fill="none" stroke="#34d399" stroke-width="3"/>
+        <rect x="905" y="80" width="104" height="22" rx="4" fill="#34d399"/>
+        <text class="sans" x="913" y="96" font-size="14" font-weight="700" fill="#06251a">person 87%</text>
+      </g>
+      <circle cx="940" cy="132" r="15" fill="#7aa7d6"/>
+      <path d="M918 232 V164 Q940 150 962 164 V232Z" fill="#5b8cc2"/>
+    </g>
+    <rect class="scan" x="770" y="50" width="360" height="70" fill="url(#scanfade)"/>
+  </g>
+  <g transform="translate(1100 76)">
+    <circle class="dot" r="6" fill="#ef4444"/>
+    <text class="sans" x="-12" y="5" text-anchor="end" font-size="13" font-weight="700" fill="#fca5a5">LIVE</text>
+  </g>
+  <!-- board -->
+  <g transform="translate(1086 276)">
+    <circle class="ring" r="22" fill="none" stroke="#34d399" stroke-width="3"/>
+    <circle class="ring b" r="22" fill="none" stroke="#34d399" stroke-width="3"/>
+    <circle r="9" fill="#34d399"/>
+  </g>
+</svg>

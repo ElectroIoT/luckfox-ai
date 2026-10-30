@@ -1,0 +1,23 @@
+# systemd unit for the Telegram bridge on a Linux machine (Raspberry Pi, server, NAS).
+# Install:
+#   sudo cp tools/aid-telegram.service /etc/systemd/system/
+#   edit User=, WorkingDirectory= and the paths below
+#   sudo systemctl daemon-reload && sudo systemctl enable --now aid-telegram
+#   journalctl -u aid-telegram -f
+[Unit]
+Description=luckfox-ai Telegram bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/luckfox-ai/tools
+ExecStart=/usr/bin/python3 /home/pi/luckfox-ai/tools/telegram_bridge.py --config /home/pi/luckfox-ai/tools/telegram_bridge.conf
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/tmp
+
+[Install]
+WantedBy=multi-user.target

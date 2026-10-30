@@ -239,6 +239,19 @@ static void testStore() {
         CHECK(st.snapshotPath("8.jpg/../../etc").empty());
         CHECK(st.snapshotPath("abc.jpg").empty());
         CHECK(st.snapshotPath("8.png").empty());
+
+        // manual photos: stored apart from event pictures, newest 3 kept, newest first in the list
+        CHECK(st.maxId() == 8);
+        CHECK(st.listCaptures().empty());
+        for (int i = 1; i <= 5; ++i) CHECK(st.saveCapture(1700000000000LL + i, std::vector<uint8_t>(7, 1)) == std::to_string(1700000000000LL + i) + ".jpg");
+        const std::vector<std::string> caps = st.listCaptures();
+        CHECK(caps.size() == 3 && caps[0] == "1700000000005.jpg" && caps[2] == "1700000000003.jpg");
+        CHECK(st.capturePath("1700000000005.jpg") == dir + "/captures/1700000000005.jpg");
+        CHECK(st.capturePath("../x.jpg").empty() && st.capturePath("a.jpg").empty());
+        CHECK(st.saveCapture(0, std::vector<uint8_t>(7, 1)).empty());
+        CHECK(st.saveCapture(5, std::vector<uint8_t>()).empty());
+        CHECK(access((dir + "/captures/1700000000001.jpg").c_str(), F_OK) != 0);
+        CHECK(st.query(100, "", 0).size() == 5);                // captures are not events
     }
     {   // reload from disk
         aid::EventStore st(dir, 5, 3);
@@ -250,6 +263,15 @@ static void testStore() {
         CHECK(st.query(100, "", 0).size() == 2);            // ids 7 and 8 remain
         CHECK(st.clearAll() == 2);
         CHECK(st.count() == 0);
+        CHECK(st.maxId() == 0);
+    }
+    {   // the engine continues the numbering after the stored events
+        aid::Config c;
+        aid::EventEngine en(c);
+        en.setNextId(9);
+        CHECK(en.lastEventId() == 8);
+        en.setNextId(3);                                    // never goes backwards
+        CHECK(en.lastEventId() == 8);
     }
     {
         aid::Event e;

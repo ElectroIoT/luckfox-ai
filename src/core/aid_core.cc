@@ -8,10 +8,12 @@
 // Exit codes: 0 = stopped on request, 1 = start-up failure, 2 = bad usage/config, 3 = restart requested.
 #include <signal.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <atomic>
 #include <cstdio>
 #include <cstring>
@@ -166,8 +168,31 @@ int main(int argc, char** argv) {
     std::mutex cfgMutex;
     auto cfgCopy = [&]() { std::lock_guard<std::mutex> l(cfgMutex); return cfg; };
 
-    // ---- storage, events, auth
-    aid::EventStore store(cfg.dataDir, cfg.eventsKeep, cfg.snapshotsKeep);
+    // ---- storage: data_dir=auto uses a memory card when one is there, else RAM
+    // (never the SPI flash). NOT tested on real hardware: no card was available.
+    std::string dataDir = cfg.dataDir;
+    bool sdInUse = false;
+    aid::SdCard sd = aid::findSdCard();
+    if (sd.present && !sd.mounted) {
+        std::string me;
+        if (aid::tryMountSd(&sd, "/mnt/sdcard", &me)) aid::logInfo("memory card " + sd.device + " mounted at " + sd.mountPoint);
+        else aid::logWarn("memory card found but not usable: " + me);
+    }
+    if (cfg.dataDir == "auto") {
+        dataDir = "/tmp/aid-data";
+        if (sd.mounted) {
+            const std::string cand = sd.mountPoint + "/aid-data";
+            mkdir(cand.c_str(), 0700);
+            if (access(cand.c_str(), W_OK) == 0) { dataDir = cand; sdInUse = true; }
+            else aid::logWarn("memory card at " + sd.mountPoint + " is not writable, using RAM storage");
+        }
+        aid::logInfo("event storage: " + dataDir + (sdInUse ? " (memory card)" : " (RAM, lost at reboot)"));
+        if (sd.mounted && !sdInUse) sd.mounted = false;
+    }
+    // A card holds far more than RAM: keep a long history there.
+    const int eventsKeep = sdInUse ? std::max(cfg.eventsKeep, 2000) : cfg.eventsKeep;
+    const int snapsKeep = sdInUse ? std::max(cfg.snapshotsKeep, 1000) : cfg.snapshotsKeep;
+    aid::EventStore store(dataDir, eventsKeep, snapsKeep);
     if (!store.init(&err)) aid::logError("event storage unavailable: " + err);
     aid::AuthManager auth(cfg.authFile, cfg.sessionIdleMin, cfg.sessionMaxHours);
     if (!auth.load(&err))
@@ -212,6 +237,7 @@ int main(int argc, char** argv) {
     // ---- event engine
     std::mutex engineMutex;
     aid::EventEngine engine(cfg);
+    engine.setNextId(store.maxId() + 1);
     const std::set<std::string> snapTypes = {"person_detected", "vehicle_detected", "animal_detected", "motion_detected",
                                              "object_entered", "input_changed"};
     engine.setSink([&](aid::Event& e) {
@@ -252,6 +278,29 @@ int main(int argc, char** argv) {
 
     CpuSampler cpu;
 
+    // Flash space of the system (root filesystem), re-read at most every 30 s.
+    std::mutex rootMutex;
+    double rootTotal = -1, rootFree = -1;
+    int64_t rootAtMs = 0;
+    auto rootUsage = [&](double* t, double* f) {
+        std::lock_guard<std::mutex> l(rootMutex);
+        if (rootAtMs == 0 || monoMs() - rootAtMs > 30000) {
+            if (!aid::diskUsageMB("/", &rootTotal, &rootFree)) rootTotal = rootFree = -1;
+            rootAtMs = monoMs();
+        }
+        *t = rootTotal;
+        *f = rootFree;
+    };
+    // Memory card state for the dashboard.
+    auto sdJson = [&]() -> std::string {
+        double t = -1, f = -1;
+        if (sd.mounted) aid::diskUsageMB(sd.mountPoint, &t, &f);
+        char buf[320];
+        snprintf(buf, sizeof(buf), "{\"present\":%s,\"mounted\":%s,\"in_use\":%s,\"device\":%s,\"total_mb\":%.1f,\"free_mb\":%.1f}",
+                 b(sd.present).c_str(), b(sd.mounted).c_str(), b(sdInUse).c_str(), q(sd.device).c_str(), t, f);
+        return buf;
+    };
+
     // ---- status builders
     auto statusJson = [&]() -> std::string {
         const aid::Config c = cfgCopy();
@@ -265,7 +314,9 @@ int main(int argc, char** argv) {
             motionActive = engine.motionActive();
         }
         double total = 0, freeMb = 0;
-        const bool disk = aid::diskUsageMB(c.dataDir, &total, &freeMb);
+        const bool disk = aid::diskUsageMB(dataDir, &total, &freeMb);
+        double flashTotal = -1, flashFree = -1;
+        rootUsage(&flashTotal, &flashFree);
         std::ostringstream o;
         o.setf(std::ios::fixed);
         o.precision(2);
@@ -294,7 +345,9 @@ int main(int argc, char** argv) {
           << ",\"mem_total_mb\":" << aid::memTotalMB() << ",\"process_rss_mb\":" << aid::processRssMB()
           << ",\"cpu_system_pct\":" << cpu.systemPct.load() << ",\"cpu_process_pct\":" << cpu.processPct.load()
           << ",\"ip\":" << q(aid::localIpv4()) << ",\"storage_free_mb\":" << (disk ? freeMb : -1)
-          << ",\"storage_total_mb\":" << (disk ? total : -1) << "}}\n";
+          << ",\"storage_total_mb\":" << (disk ? total : -1) << ",\"storage_dir\":" << q(dataDir)
+          << ",\"flash_free_mb\":" << flashFree << ",\"flash_total_mb\":" << flashTotal
+          << ",\"sd\":" << sdJson() << "}}\n";
         return o.str();
     };
 
@@ -364,7 +417,7 @@ int main(int argc, char** argv) {
                       sysKernel = aid::firstLine("/proc/version"), sysOs = aid::keyValueFromFile("/etc/os-release", "PRETTY_NAME");
     be.systemInfoJson = [&]() -> std::string {
         double rt = 0, rf = 0, dt = 0, df = 0;
-        const bool r = aid::diskUsageMB("/", &rt, &rf), d = aid::diskUsageMB(cfgCopy().dataDir, &dt, &df);
+        const bool r = aid::diskUsageMB("/", &rt, &rf), d = aid::diskUsageMB(dataDir, &dt, &df);
         std::ostringstream o;
         o.setf(std::ios::fixed);
         o.precision(1);
@@ -374,6 +427,7 @@ int main(int argc, char** argv) {
           << ",\"uptime_s\":" << aid::systemUptimeSeconds() << ",\"mem_total_mb\":" << aid::memTotalMB()
           << ",\"root_total_mb\":" << (r ? rt : -1) << ",\"root_free_mb\":" << (r ? rf : -1)
           << ",\"data_total_mb\":" << (d ? dt : -1) << ",\"data_free_mb\":" << (d ? df : -1)
+          << ",\"data_dir\":" << q(dataDir) << ",\"sd\":" << sdJson()
           << ",\"rtsp_port\":" << cfgCopy().rtspPort << ",\"http_port\":" << cfgCopy().httpPort << "}";
         return o.str();
     };

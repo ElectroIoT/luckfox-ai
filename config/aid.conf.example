@@ -31,10 +31,12 @@ http_token=
 
 # ---- storage. Events and pictures go to RAM (/tmp) by default; the history is lost at reboot.
 # The board's SPI flash showed controller errors during testing, so the program avoids writing to it.
-# For lasting history use a microSD card (not tested yet), e.g. data_dir=/mnt/sdcard/aid
-#data_dir=/tmp/aid-data
+# "auto" (default): use a microSD card if one is inserted (long history, survives reboots),
+# otherwise RAM (/tmp/aid-data, lost at reboot). The card code is NOT tested on real hardware yet.
+# You can also give a fixed absolute path.
+#data_dir=auto
 #events_keep=300
-#snapshots_keep=20
+#snapshots_keep=30
 #web_dir=/root/aid/web
 #auth_file=/root/aid/auth.json
 

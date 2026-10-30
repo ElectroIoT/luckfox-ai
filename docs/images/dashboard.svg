@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" role="img" aria-labelledby="t d">
+  <title id="t">Dashboard illustration</title>
+  <desc id="d">Illustration (not a screenshot) of the dashboard: live preview with a detection box, camera and AI numbers, system gauges, flash and memory card space.</desc>
+  <style>
+    .sans{font-family:system-ui,"Segoe UI",Roboto,Arial,sans-serif}
+    .card{fill:#12233b;stroke:#27476f;stroke-width:1.2}
+    .h{font-weight:700;font-size:15px;fill:#e8f1fb}
+    .k{font-size:13px;fill:#93a9c4}
+    .v{font-size:13px;font-weight:600;fill:#e8f1fb}
+    .tab{font-size:13px;font-weight:600;fill:#93a9c4}
+    .ok{fill:#064e3b}
+    .track{fill:#1d3556}
+    .b1{animation:g1 5s ease-in-out infinite;transform-box:fill-box;transform-origin:left center}
+    .b2{animation:g2 6s ease-in-out infinite;transform-box:fill-box;transform-origin:left center}
+    .walk{animation:walk 6s ease-in-out infinite}
+    .scan{animation:scan 3s linear infinite}
+    .led{animation:blink 1.2s ease-in-out infinite}
+    @keyframes g1{0%,100%{transform:scaleX(.24)}50%{transform:scaleX(.27)}}
+    @keyframes g2{0%,100%{transform:scaleX(.09)}50%{transform:scaleX(.1)}}
+    @keyframes walk{0%,100%{transform:translateX(-50px)}50%{transform:translateX(60px)}}
+    @keyframes scan{0%{transform:translateY(0)}100%{transform:translateY(210px)}}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+    @media (prefers-reduced-motion:reduce){.b1,.b2,.walk,.scan,.led{animation:none}}
+  </style>
+  <defs><clipPath id="cv"><rect x="40" y="130" width="520" height="292" rx="10"/></clipPath>
+    <linearGradient id="sf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity="0"/><stop offset="1" stop-color="#38bdf8" stop-opacity=".4"/></linearGradient></defs>
+  <rect width="1000" height="560" rx="20" fill="#0b1220"/>
+  <rect x="0" y="0" width="1000" height="62" rx="20" fill="#0f1c30"/>
+  <rect x="0" y="40" width="1000" height="22" fill="#0f1c30"/>
+  <circle cx="34" cy="31" r="12" fill="#38bdf8"/><circle cx="34" cy="31" r="5" fill="#0b1220"/>
+  <text class="sans h" x="56" y="37" font-size="17">Luckfox AI</text>
+  <g class="sans">
+    <rect x="190" y="18" width="104" height="30" rx="15" fill="#38bdf8"/><text class="tab" x="208" y="38" fill="#06243a" style="fill:#06243a">Dashboard</text>
+    <text class="tab" x="320" y="38">Live camera</text><text class="tab" x="420" y="38">AI detection</text>
+    <text class="tab" x="530" y="38">Event history</text><text class="tab" x="650" y="38">Settings</text><text class="tab" x="730" y="38">System</text>
+  </g>
+  <text class="sans" x="40" y="104" font-size="24" font-weight="800" fill="#fff">Dashboard</text>
+
+  <!-- live -->
+  <rect class="card" x="24" y="118" width="552" height="326" rx="14"/>
+  <rect x="40" y="130" width="520" height="292" rx="10" fill="#0a1628"/>
+  <g clip-path="url(#cv)">
+    <path d="M40 360 L560 320 V422 H40Z" fill="#102846"/>
+    <g class="walk">
+      <circle cx="250" cy="228" r="22" fill="#7aa7d6"/><path d="M220 372 V270 Q250 250 280 270 V372Z" fill="#5b8cc2"/>
+      <rect x="212" y="196" width="76" height="180" rx="7" fill="none" stroke="#34d399" stroke-width="3"/>
+      <rect x="212" y="170" width="112" height="26" rx="5" fill="#34d399"/>
+      <text class="sans" x="221" y="189" font-size="15" font-weight="700" fill="#06251a">person 87%</text>
+    </g>
+    <rect class="scan" x="40" y="130" width="520" height="80" fill="url(#sf)"/>
+  </g>
+  <circle class="led" cx="62" cy="152" r="6" fill="#ef4444"/><text class="sans" x="74" y="157" font-size="13" font-weight="700" fill="#fca5a5">LIVE</text>
+
+  <!-- camera + ai -->
+  <rect class="card" x="596" y="118" width="380" height="150" rx="14"/>
+  <text class="sans h" x="614" y="146">Camera</text>
+  <g class="sans"><text class="k" x="614" y="172">Sensor</text><text class="v" x="780" y="172">sc3336</text>
+    <text class="k" x="614" y="194">State</text><rect class="ok" x="780" y="180" width="62" height="20" rx="10"/><text class="v" x="792" y="195" style="fill:#6ee7b7">online</text>
+    <text class="k" x="614" y="218">Resolution</text><text class="v" x="780" y="218">1920x1080</text>
+    <text class="k" x="614" y="242">Frame rate</text><text class="v" x="780" y="242">28.5 fps</text></g>
+  <rect class="card" x="596" y="282" width="380" height="162" rx="14"/>
+  <text class="sans h" x="614" y="310">AI</text>
+  <g class="sans"><text class="k" x="614" y="336">Detection</text><rect class="ok" x="780" y="322" width="70" height="20" rx="10"/><text class="v" x="792" y="337" style="fill:#6ee7b7">running</text>
+    <text class="k" x="614" y="360">Inference</text><text class="v" x="780" y="360">89 ms avg</text>
+    <text class="k" x="614" y="384">Interval</text><text class="v" x="780" y="384">500 ms</text>
+    <text class="k" x="614" y="408">Confidence</text><text class="v" x="780" y="408">45 %</text></g>
+
+  <!-- bottom row -->
+  <rect class="card" x="24" y="458" width="300" height="86" rx="14"/>
+  <text class="sans h" x="42" y="484">System</text>
+  <g class="sans"><text class="k" x="42" y="506">Camera program CPU</text><text class="v" x="290" y="506" text-anchor="end">11 %</text></g>
+  <rect class="track" x="42" y="514" width="264" height="8" rx="4"/><rect x="42" y="514" width="58" height="8" rx="4" fill="#38bdf8"/>
+  <g class="sans"><text class="k" x="42" y="540">SoC 66 C</text></g>
+
+  <rect class="card" x="338" y="458" width="300" height="86" rx="14"/>
+  <text class="sans h" x="356" y="484">System flash</text>
+  <g class="sans"><text class="k" x="356" y="506">Free</text><text class="v" x="620" y="506" text-anchor="end">138 of 181 MB</text></g>
+  <rect class="track" x="356" y="514" width="264" height="8" rx="4"/><rect class="b1" x="356" y="514" width="264" height="8" rx="4" fill="#34d399"/>
+
+  <rect class="card" x="652" y="458" width="324" height="86" rx="14"/>
+  <text class="sans h" x="670" y="484">Memory card</text>
+  <g class="sans"><text class="k" x="670" y="506">Free</text><text class="v" x="958" y="506" text-anchor="end">27150 of 29800 MB</text></g>
+  <rect class="track" x="670" y="514" width="288" height="8" rx="4"/><rect class="b2" x="670" y="514" width="288" height="8" rx="4" fill="#a78bfa"/>
+</svg>
