@@ -5,8 +5,8 @@ killall rkipc 2>/dev/null
 n=0
 while ps | grep -q '[r]kipc -a'; do
     n=$((n + 1))
-    if [ "$n" -gt 10 ]; then
-        echo "rkipc is still running after 10 s" >&2
+    if [ "$n" -gt 30 ]; then
+        echo "rkipc is still running after 30 s" >&2
         exit 1
     fi
     sleep 1

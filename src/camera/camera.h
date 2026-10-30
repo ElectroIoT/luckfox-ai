@@ -8,11 +8,22 @@
 
 namespace aid {
 
+// Image adjustments. -1 means "leave as the ISP tuning file set it". Range for the four
+// levels is 0..255 (Rockchip rkaiq documentation); the default level is not assumed.
+struct ImageControls {
+    int brightness = -1;
+    int contrast = -1;
+    int saturation = -1;
+    int sharpness = -1;
+    int aeLock = -1;                  // -1 leave, 0 unlock, 1 lock auto exposure
+};
+
 struct CameraConfig {
     int width = 1920;
     int height = 1080;
     int fps = 0;                      // 0 = leave the sensor/ISP default
     std::string iqDir = "/etc/iqfiles";  // ISP tuning files
+    ImageControls controls;           // applied right after the ISP starts
 };
 
 struct CameraStats {
@@ -42,6 +53,13 @@ public:
     bool open(const CameraConfig& cfg, std::string* err);
     void close();
     bool isOpen() const;
+
+    // Changes image controls while running. Returns false and sets *err on the first failure.
+    bool setControls(const ImageControls& c, std::string* err);
+
+    // Current values read back from the ISP as JSON (brightness, contrast, saturation,
+    // sharpness, exposure mode, exposure time range in seconds, gain range).
+    std::string controlsJson();
 
     // Receives frames for `seconds` and reports the measured frame rate.
     bool measureFps(double seconds, CameraStats* out, std::string* err);

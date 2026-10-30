@@ -2,12 +2,16 @@
 //   aid-camera status                      read-only, works while rkipc runs
 //   aid-camera fps [seconds] [opts]        measure the real frame rate
 //   aid-camera snapshot <file.jpg> [opts]  save one JPEG
+//   aid-camera controls [opts]             apply image controls and print the values read back
 // opts: --width W --height H --fps N --quality Q
+//       --brightness N --contrast N --saturation N --sharpness N   (0..255)
+//       --ae-lock 0|1
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <unistd.h>
 
 #include "camera.h"
 
@@ -18,8 +22,10 @@ void usage(const char* me) {
             "usage:\n"
             "  %s status\n"
             "  %s fps [seconds] [--width W] [--height H] [--fps N]\n"
-            "  %s snapshot <file.jpg> [--width W] [--height H] [--fps N] [--quality Q]\n",
-            me, me, me);
+            "  %s snapshot <file.jpg> [--width W] [--height H] [--fps N] [--quality Q] [image opts]\n"
+            "  %s controls [image opts]\n"
+            "image opts: --brightness N --contrast N --saturation N --sharpness N (0..255) --ae-lock 0|1\n",
+            me, me, me, me);
 }
 
 bool parseOpts(int argc, char** argv, int start, aid::CameraConfig* cfg, int* quality) {
@@ -31,6 +37,11 @@ bool parseOpts(int argc, char** argv, int start, aid::CameraConfig* cfg, int* qu
         else if (!strcmp(a, "--height")) cfg->height = v;
         else if (!strcmp(a, "--fps")) cfg->fps = v;
         else if (!strcmp(a, "--quality")) *quality = v;
+        else if (!strcmp(a, "--brightness")) cfg->controls.brightness = v;
+        else if (!strcmp(a, "--contrast")) cfg->controls.contrast = v;
+        else if (!strcmp(a, "--saturation")) cfg->controls.saturation = v;
+        else if (!strcmp(a, "--sharpness")) cfg->controls.sharpness = v;
+        else if (!strcmp(a, "--ae-lock")) cfg->controls.aeLock = v ? 1 : 0;
         else { fprintf(stderr, "unknown option %s\n", a); return false; }
     }
     if (cfg->width < 32 || cfg->height < 32 || cfg->width > 4096 || cfg->height > 4096) {
@@ -86,6 +97,16 @@ int main(int argc, char** argv) {
         }
         printf("{\"file\": \"%s\", \"bytes\": %u, \"width\": %u, \"height\": %u, \"encode_ms\": %.2f}\n",
                path.c_str(), info.bytes, info.width, info.height, info.encodeMs);
+        return 0;
+    }
+
+    if (cmd == "controls") {
+        if (!parseOpts(argc, argv, 2, &cfg, &quality)) return 2;
+        aid::Camera cam;
+        if (!cam.open(cfg, &err)) { fprintf(stderr, "open failed: %s\n", err.c_str()); return 1; }
+        // Give the ISP a moment, then read the values back so we see what it really holds.
+        usleep(1000 * 1000);
+        printf("%s\n", cam.controlsJson().c_str());
         return 0;
     }
 

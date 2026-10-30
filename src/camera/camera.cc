@@ -91,6 +91,11 @@ bool viChnInit(int width, int height, std::string* err) {
     return true;
 }
 
+XCamReturn ispErrCb(rk_aiq_err_msg_t*) { return XCAM_RETURN_NO_ERROR; }
+XCamReturn ispSofCb(rk_aiq_metas_t*) { return XCAM_RETURN_NO_ERROR; }
+
+bool levelOk(int v) { return v >= 0 && v <= 255; }
+
 std::string readFirstLine(const std::string& path) {
     std::ifstream f(path.c_str());
     std::string s;
@@ -127,6 +132,7 @@ struct Camera::Impl {
     CameraConfig cfg;
     bool open = false;
     bool ispUp = false;
+    rk_aiq_sys_ctx_t* aiq = nullptr;  // our own ISP (rkaiq) context; the SDK's one is private
     bool sysUp = false;
     bool viDevUp = false;
     bool viChnUp = false;
@@ -148,20 +154,46 @@ bool Camera::open(const CameraConfig& cfg, std::string* err) {
         return false;
     }
 
-    RK_S32 ret = SAMPLE_COMM_ISP_Init(0, RK_AIQ_WORKING_MODE_NORMAL, RK_FALSE, cfg.iqDir.c_str());
-    if (ret != RK_SUCCESS) {
-        *err = "SAMPLE_COMM_ISP_Init " + hex(ret) + " (iq dir " + cfg.iqDir + ")";
+    // ISP (auto exposure / white balance etc.). Same calls as the Luckfox/Rockchip sample
+    // SAMPLE_COMM_ISP_Init/Run, but we keep the context so we can change image controls.
+    setenv("HDR_MODE", "0", 1);  // normal (non-HDR) mode, as in the sample
+    rk_aiq_static_info_t info;
+    memset(&info, 0, sizeof(info));
+    if (rk_aiq_uapi2_sysctl_enumStaticMetasByPhyId(0, &info) != 0) {
+        *err = "rk_aiq_uapi2_sysctl_enumStaticMetasByPhyId failed (no sensor?)";
         return false;
     }
-    ret = SAMPLE_COMM_ISP_Run(0);
-    if (ret != RK_SUCCESS) {
-        *err = "SAMPLE_COMM_ISP_Run " + hex(ret);
-        SAMPLE_COMM_ISP_Stop(0);
+    rk_aiq_uapi2_sysctl_preInit_devBufCnt(info.sensor_info.sensor_name, "rkraw_rx", 2);
+    impl_->aiq = rk_aiq_uapi2_sysctl_init(info.sensor_info.sensor_name, cfg.iqDir.c_str(),
+                                          ispErrCb, ispSofCb);
+    if (!impl_->aiq) {
+        *err = "rk_aiq_uapi2_sysctl_init failed (iq dir " + cfg.iqDir + ")";
+        return false;
+    }
+    if (rk_aiq_uapi2_sysctl_prepare(impl_->aiq, 0, 0, RK_AIQ_WORKING_MODE_NORMAL) != 0) {
+        *err = "rk_aiq_uapi2_sysctl_prepare failed";
+        rk_aiq_uapi2_sysctl_deinit(impl_->aiq);
+        impl_->aiq = nullptr;
+        return false;
+    }
+    if (rk_aiq_uapi2_sysctl_start(impl_->aiq) != 0) {
+        *err = "rk_aiq_uapi2_sysctl_start failed";
+        rk_aiq_uapi2_sysctl_deinit(impl_->aiq);
+        impl_->aiq = nullptr;
         return false;
     }
     impl_->ispUp = true;
-    if (cfg.fps > 0) SAMPLE_COMM_ISP_SetFrameRate(0, (RK_U32)cfg.fps);
 
+    if (cfg.fps > 0) {
+        Uapi_ExpSwAttrV2_t sw;
+        memset(&sw, 0, sizeof(sw));
+        if (rk_aiq_user_api2_ae_getExpSwAttr(impl_->aiq, &sw) == 0) {
+            sw.stAuto.stFrmRate.isFpsFix = true;
+            sw.stAuto.stFrmRate.FpsValue = (unsigned)cfg.fps;
+            rk_aiq_user_api2_ae_setExpSwAttr(impl_->aiq, sw);
+        }
+    }
+    RK_S32 ret;
     ret = RK_MPI_SYS_Init();
     if (ret != RK_SUCCESS) {
         *err = "RK_MPI_SYS_Init " + hex(ret);
@@ -176,6 +208,7 @@ bool Camera::open(const CameraConfig& cfg, std::string* err) {
     impl_->viChnUp = true;
 
     impl_->open = true;
+    if (!setControls(cfg.controls, err)) { close(); return false; }
     return true;
 }
 
@@ -187,9 +220,62 @@ void Camera::close() {
     }
     if (impl_->viChnUp) { RK_MPI_VI_DisableChn(kViDev, kViChn); impl_->viChnUp = false; }
     if (impl_->viDevUp) { RK_MPI_VI_DisableDev(kViDev); impl_->viDevUp = false; }
-    if (impl_->ispUp) { SAMPLE_COMM_ISP_Stop(0); impl_->ispUp = false; }
+    if (impl_->ispUp) {
+        rk_aiq_uapi2_sysctl_stop(impl_->aiq, false);
+        rk_aiq_uapi2_sysctl_deinit(impl_->aiq);
+        impl_->aiq = nullptr;
+        impl_->ispUp = false;
+    }
     if (impl_->sysUp) { RK_MPI_SYS_Exit(); impl_->sysUp = false; }
     impl_->open = false;
+}
+
+bool Camera::setControls(const ImageControls& c, std::string* err) {
+    std::string dummy;
+    if (!err) err = &dummy;
+    if (!impl_->ispUp || !impl_->aiq) { *err = "ISP not running"; return false; }
+    struct Item { const char* name; int v; };
+    const Item levels[] = {{"brightness", c.brightness}, {"contrast", c.contrast},
+                           {"saturation", c.saturation}, {"sharpness", c.sharpness}};
+    for (const Item& it : levels)
+        if (it.v != -1 && !levelOk(it.v)) { *err = std::string(it.name) + " must be 0..255"; return false; }
+
+    XCamReturn r = XCAM_RETURN_NO_ERROR;
+    if (c.brightness != -1) r = rk_aiq_uapi2_setBrightness(impl_->aiq, (unsigned)c.brightness);
+    if (r == XCAM_RETURN_NO_ERROR && c.contrast != -1) r = rk_aiq_uapi2_setContrast(impl_->aiq, (unsigned)c.contrast);
+    if (r == XCAM_RETURN_NO_ERROR && c.saturation != -1) r = rk_aiq_uapi2_setSaturation(impl_->aiq, (unsigned)c.saturation);
+    if (r == XCAM_RETURN_NO_ERROR && c.sharpness != -1) r = rk_aiq_uapi2_setSharpness(impl_->aiq, (unsigned)c.sharpness);
+    if (r == XCAM_RETURN_NO_ERROR && c.aeLock != -1) r = rk_aiq_uapi2_setAeLock(impl_->aiq, c.aeLock == 1);
+    if (r != XCAM_RETURN_NO_ERROR) { *err = "rkaiq call failed, code " + std::to_string((int)r); return false; }
+    return true;
+}
+
+std::string Camera::controlsJson() {
+    std::ostringstream o;
+    o << "{";
+    if (!impl_->ispUp || !impl_->aiq) { o << "\"error\": \"ISP not running\"}"; return o.str(); }
+    unsigned v = 0;
+    auto lvl = [&](const char* name, XCamReturn (*get)(const rk_aiq_sys_ctx_t*, unsigned int*), bool first) {
+        v = 0;
+        const XCamReturn r = get(impl_->aiq, &v);
+        if (!first) o << ", ";
+        o << "\"" << name << "\": ";
+        if (r == XCAM_RETURN_NO_ERROR) o << v; else o << "null";
+    };
+    lvl("brightness", rk_aiq_uapi2_getBrightness, true);
+    lvl("contrast", rk_aiq_uapi2_getContrast, false);
+    lvl("saturation", rk_aiq_uapi2_getSaturation, false);
+    lvl("sharpness", rk_aiq_uapi2_getSharpness, false);
+    opMode_t mode = OP_INVAL;
+    if (rk_aiq_uapi2_getExpMode(impl_->aiq, &mode) == XCAM_RETURN_NO_ERROR)
+        o << ", \"exposure_mode\": \"" << (mode == OP_AUTO ? "auto" : (mode == OP_MANUAL ? "manual" : "other")) << "\"";
+    paRange_t t = {0, 0}, g = {0, 0};
+    if (rk_aiq_uapi2_getExpTimeRange(impl_->aiq, &t) == XCAM_RETURN_NO_ERROR)
+        o << ", \"exposure_time_range_s\": [" << t.min << ", " << t.max << "]";
+    if (rk_aiq_uapi2_getExpGainRange(impl_->aiq, &g) == XCAM_RETURN_NO_ERROR)
+        o << ", \"gain_range\": [" << g.min << ", " << g.max << "]";
+    o << "}";
+    return o.str();
 }
 
 bool Camera::measureFps(double seconds, CameraStats* out, std::string* err) {
